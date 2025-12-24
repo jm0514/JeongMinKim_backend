@@ -22,7 +22,7 @@ public enum ErrorCode {
 
     // 입력 검증 에러
     VALIDATION_ERROR("VAL001", HttpStatus.BAD_REQUEST, "입력값 검증에 실패했습니다"),
-    ILLEGAL_ARGUMENT("VAL002", HttpStatus.BAD_REQUEST, "유효하지 않은 요청입니다"),
+    INVALID_INPUT_VALUE("VAL002", HttpStatus.BAD_REQUEST, "유효하지 않은 입력값입니다"),
 
     // 시스템 에러
     INTERNAL_SERVER_ERROR("SYS001", HttpStatus.INTERNAL_SERVER_ERROR, "내부 서버 오류가 발생했습니다");

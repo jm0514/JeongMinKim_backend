@@ -33,11 +33,11 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * @Valid 검증 실패 예외 처리
+     * {@code @Valid} 애노테이션 검증 실패 예외 처리
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException ex) {
-        log.error("ValidationException: {}", ex.getMessage());
+    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+        log.error("MethodArgumentNotValidException: {}", ex.getMessage());
 
         String validationMessages = ex.getBindingResult()
                 .getFieldErrors()
@@ -63,7 +63,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
         log.error("IllegalArgumentException: {}", ex.getMessage());
 
-        ErrorCode errorCode = ErrorCode.ILLEGAL_ARGUMENT;
+        ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
         ApiResponse<Void> response = ApiResponse.error(
                 errorCode.getCode(),
                 ex.getMessage()
