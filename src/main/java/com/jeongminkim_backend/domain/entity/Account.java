@@ -7,12 +7,16 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Entity
 @Table(name = "accounts")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Account extends BaseTimeEntity {
+
+    // 이체 수수료율: 1%
+    private static final BigDecimal TRANSFER_FEE_RATE = new BigDecimal("0.01");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,9 +47,7 @@ public class Account extends BaseTimeEntity {
      * @param amount 입금 금액
      */
     public void deposit(BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("입금 금액은 0보다 커야 합니다");
-        }
+        validateAmount(amount);
         this.balance = this.balance.add(amount);
     }
 
@@ -54,9 +56,7 @@ public class Account extends BaseTimeEntity {
      * @param amount 출금 금액
      */
     public void withdraw(BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("출금 금액은 0보다 커야 합니다");
-        }
+        validateAmount(amount);
         if (this.balance.compareTo(amount) < 0) {
             throw new IllegalArgumentException("잔액이 부족합니다");
         }
@@ -68,5 +68,26 @@ public class Account extends BaseTimeEntity {
      */
     public boolean hasEnoughBalance(BigDecimal amount) {
         return this.balance.compareTo(amount) >= 0;
+    }
+
+    /**
+     * 이체 수수료 계산
+     * @param amount 이체 금액
+     * @return 수수료 (이체 금액의 1%, 소수점 둘째자리 반올림)
+     */
+    public BigDecimal calculateTransferFee(BigDecimal amount) {
+        validateAmount(amount);
+        return amount.multiply(TRANSFER_FEE_RATE)
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * 금액 검증
+     * @param amount 검증할 금액
+     */
+    private void validateAmount(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("금액은 0보다 커야 합니다");
+        }
     }
 }
