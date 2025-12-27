@@ -28,7 +28,7 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> success(T data, ResponseMessage responseMessage) {
         return ApiResponse.<T>builder()
                 .success(true)
-                .code("SUCCESS")
+                .code(responseMessage.getCode())
                 .message(responseMessage.getMessage())
                 .data(data)
                 .timestamp(LocalDateTime.now())
@@ -41,7 +41,7 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> success(ResponseMessage responseMessage) {
         return ApiResponse.<T>builder()
                 .success(true)
-                .code("SUCCESS")
+                .code(responseMessage.getCode())
                 .message(responseMessage.getMessage())
                 .data(null)
                 .timestamp(LocalDateTime.now())
