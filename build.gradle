@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '4.0.1'
+    id 'org.springframework.boot' version '3.4.1'
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -27,7 +27,7 @@ repositories {
 dependencies {
     // Spring Boot Starters
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     // Database
@@ -38,7 +38,7 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
 
     // SpringDoc OpenAPI (Swagger)
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
 
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
