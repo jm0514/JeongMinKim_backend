@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "accounts")
@@ -30,6 +31,9 @@ public class Account extends BaseTimeEntity {
 
     @Column(name = "owner_name", nullable = false, length = 100)
     private String ownerName;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     /**
      * 계좌 생성 팩토리 메서드
@@ -89,5 +93,19 @@ public class Account extends BaseTimeEntity {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("금액은 0보다 커야 합니다");
         }
+    }
+
+    /**
+     * 계좌 삭제 (Soft Delete)
+     */
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    /**
+     * 계좌 삭제 여부 확인
+     */
+    public boolean isDeleted() {
+        return this.deletedAt != null;
     }
 }

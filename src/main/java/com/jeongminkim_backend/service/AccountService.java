@@ -26,7 +26,7 @@ public class AccountService {
     public AccountResponse createAccount(CreateAccountRequest request) {
         log.info("계좌 생성 시작: {}", request.getAccountNumber());
 
-        if (accountRepository.existsByAccountNumber(request.getAccountNumber())) {
+        if (accountRepository.existsByAccountNumberAndDeletedAtIsNull(request.getAccountNumber())) {
             throw new BusinessException(ErrorCode.DUPLICATE_ACCOUNT, request.getAccountNumber());
         }
 
@@ -59,8 +59,8 @@ public class AccountService {
         Account account = accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND, accountNumber));
 
-        accountRepository.delete(account);
-        log.info("계좌 삭제 완료: {}", accountNumber);
+        account.delete();
+        log.info("계좌 삭제 완료 (Soft Delete): {}", accountNumber);
     }
 
     /**

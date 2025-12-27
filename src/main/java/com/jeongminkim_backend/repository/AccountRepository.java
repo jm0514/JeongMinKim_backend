@@ -16,17 +16,18 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     /**
      * 계좌번호로 계좌 조회
      */
-    Optional<Account> findByAccountNumber(String accountNumber);
+    @Query("SELECT a FROM Account a WHERE a.accountNumber = :accountNumber AND a.deletedAt IS NULL")
+    Optional<Account> findByAccountNumber(@Param("accountNumber") String accountNumber);
 
     /**
      * 계좌번호로 계좌 조회 (비관적 락)
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT a FROM Account a WHERE a.accountNumber = :accountNumber")
+    @Query("SELECT a FROM Account a WHERE a.accountNumber = :accountNumber AND a.deletedAt IS NULL")
     Optional<Account> findByAccountNumberWithLock(@Param("accountNumber") String accountNumber);
 
     /**
      * 계좌번호 존재 여부 확인
      */
-    boolean existsByAccountNumber(String accountNumber);
+    boolean existsByAccountNumberAndDeletedAtIsNull(String accountNumber);
 }
