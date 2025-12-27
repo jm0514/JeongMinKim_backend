@@ -3,6 +3,7 @@ package com.jeongminkim_backend.controller;
 import com.jeongminkim_backend.dto.ApiResponse;
 import com.jeongminkim_backend.dto.request.CreateAccountRequest;
 import com.jeongminkim_backend.dto.response.AccountResponse;
+import com.jeongminkim_backend.dto.response.ResponseMessage;
 import com.jeongminkim_backend.service.AccountService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,7 @@ public class AccountController {
     public ResponseEntity<ApiResponse<AccountResponse>> createAccount(@Valid @RequestBody CreateAccountRequest request) {
         log.info("POST /api/v1/accounts - 계좌 생성 요청: {}", request.getAccountNumber());
         AccountResponse response = accountService.createAccount(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "계좌가 성공적으로 생성되었습니다"));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, ResponseMessage.ACCOUNT_CREATED));
     }
 
     /**
@@ -38,7 +39,7 @@ public class AccountController {
     public ResponseEntity<ApiResponse<AccountResponse>> getAccount(@PathVariable String accountNumber) {
         log.info("GET /api/v1/accounts/{} - 계좌 조회 요청", accountNumber);
         AccountResponse response = accountService.getAccount(accountNumber);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.success(response, ResponseMessage.ACCOUNT_RETRIEVED));
     }
 
     /**
@@ -49,6 +50,6 @@ public class AccountController {
     public ResponseEntity<ApiResponse<Void>> deleteAccount(@PathVariable String accountNumber) {
         log.info("DELETE /api/v1/accounts/{} - 계좌 삭제 요청", accountNumber);
         accountService.deleteAccount(accountNumber);
-        return ResponseEntity.ok(ApiResponse.success("계좌가 성공적으로 삭제되었습니다"));
+        return ResponseEntity.ok(ApiResponse.success(ResponseMessage.ACCOUNT_DELETED));
     }
 }
