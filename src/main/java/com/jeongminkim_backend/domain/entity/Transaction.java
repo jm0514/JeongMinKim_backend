@@ -1,19 +1,22 @@
 package com.jeongminkim_backend.domain.entity;
 
-import com.jeongminkim_backend.domain.base.BaseTimeEntity;
 import com.jeongminkim_backend.domain.enums.TransactionType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "transactions")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Transaction extends BaseTimeEntity {
+@EntityListeners(AuditingEntityListener.class)
+public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,6 +40,10 @@ public class Transaction extends BaseTimeEntity {
 
     @Column(name = "related_account_number", length = 20)
     private String relatedAccountNumber;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
     /**
      * 거래 내역 생성 팩토리 메서드
