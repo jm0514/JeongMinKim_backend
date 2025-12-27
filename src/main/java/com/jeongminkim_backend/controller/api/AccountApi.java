@@ -1,5 +1,6 @@
 package com.jeongminkim_backend.controller.api;
 
+import com.jeongminkim_backend.dto.CommonResponse;
 import com.jeongminkim_backend.dto.request.CreateAccountRequest;
 import com.jeongminkim_backend.dto.response.AccountResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,7 +19,7 @@ public interface AccountApi {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccountResponse.class)))
     @CommonApiResponses.BadRequest
     @CommonApiResponses.Conflict
-    ResponseEntity<com.jeongminkim_backend.dto.CommonResponse<AccountResponse>> createAccount(
+    ResponseEntity<CommonResponse<AccountResponse>> createAccount(
             CreateAccountRequest request
     );
 
@@ -26,7 +27,7 @@ public interface AccountApi {
     @ApiResponse(responseCode = "200", description = "계좌 조회 성공",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccountResponse.class)))
     @CommonApiResponses.NotFound
-    ResponseEntity<com.jeongminkim_backend.dto.CommonResponse<AccountResponse>> getAccount(
+    ResponseEntity<CommonResponse<AccountResponse>> getAccount(
             @Parameter(description = "조회할 계좌번호", example = "1234567890", required = true)
             String accountNumber
     );
@@ -35,7 +36,7 @@ public interface AccountApi {
     @ApiResponse(responseCode = "200", description = "계좌 삭제 성공",
             content = @Content(mediaType = "application/json"))
     @CommonApiResponses.NotFound
-    ResponseEntity<com.jeongminkim_backend.dto.CommonResponse<Void>> deleteAccount(
+    ResponseEntity<CommonResponse<Void>> deleteAccount(
             @Parameter(description = "삭제할 계좌번호", example = "1234567890", required = true)
             String accountNumber
     );

@@ -26,11 +26,11 @@ public class AccountResponse {
     @Schema(description = "잔액", example = "50000.00")
     private BigDecimal balance;
 
-    @Schema(description = "계좌 생성일시", example = "2024-01-15T10:30:00")
+    @Schema(description = "계좌 생성일시", example = "2025-12-27T10:30:00")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
 
-    @Schema(description = "계좌 수정일시", example = "2024-01-15T11:00:00")
+    @Schema(description = "계좌 수정일시", example = "2025-12-27T11:00:00")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime updatedAt;
 

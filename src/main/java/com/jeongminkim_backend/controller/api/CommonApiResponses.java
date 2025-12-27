@@ -28,7 +28,7 @@ public class CommonApiResponses {
                                       "code": "VALIDATION_ERROR",
                                       "message": "계좌번호는 10~20자리여야 합니다",
                                       "data": null,
-                                      "timestamp": "2024-01-15T10:30:00"
+                                      "timestamp": "2025-12-27T10:30:00"
                                     }
                                     """
                     )
@@ -54,7 +54,7 @@ public class CommonApiResponses {
                                       "code": "ACCOUNT_NOT_FOUND",
                                       "message": "계좌를 찾을 수 없습니다: 1234567890",
                                       "data": null,
-                                      "timestamp": "2024-01-15T10:35:00"
+                                      "timestamp": "2025-12-27T10:35:00"
                                     }
                                     """
                     )
@@ -80,7 +80,7 @@ public class CommonApiResponses {
                                       "code": "DUPLICATE_ACCOUNT",
                                       "message": "이미 존재하는 계좌번호입니다: 1234567890",
                                       "data": null,
-                                      "timestamp": "2024-01-15T10:30:00"
+                                      "timestamp": "2025-12-27T10:30:00"
                                     }
                                     """
                     )
@@ -106,7 +106,7 @@ public class CommonApiResponses {
                                       "code": "INTERNAL_SERVER_ERROR",
                                       "message": "서버 내부 오류가 발생했습니다",
                                       "data": null,
-                                      "timestamp": "2024-01-15T10:30:00"
+                                      "timestamp": "2025-12-27T10:30:00"
                                     }
                                     """
                     )

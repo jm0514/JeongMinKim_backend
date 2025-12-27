@@ -1,5 +1,6 @@
 package com.jeongminkim_backend.controller.api;
 
+import com.jeongminkim_backend.dto.CommonResponse;
 import com.jeongminkim_backend.dto.request.DepositRequest;
 import com.jeongminkim_backend.dto.request.TransferRequest;
 import com.jeongminkim_backend.dto.request.WithdrawRequest;
@@ -23,7 +24,7 @@ public interface TransactionApi {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransactionResponse.class)))
     @CommonApiResponses.BadRequest
     @CommonApiResponses.NotFound
-    ResponseEntity<com.jeongminkim_backend.dto.CommonResponse<TransactionResponse>> deposit(
+    ResponseEntity<CommonResponse<TransactionResponse>> deposit(
             DepositRequest request
     );
 
@@ -32,7 +33,7 @@ public interface TransactionApi {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransactionResponse.class)))
     @CommonApiResponses.BadRequest
     @CommonApiResponses.NotFound
-    ResponseEntity<com.jeongminkim_backend.dto.CommonResponse<TransactionResponse>> withdraw(
+    ResponseEntity<CommonResponse<TransactionResponse>> withdraw(
             WithdrawRequest request
     );
 
@@ -41,14 +42,14 @@ public interface TransactionApi {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransferResponse.class)))
     @CommonApiResponses.BadRequest
     @CommonApiResponses.NotFound
-    ResponseEntity<com.jeongminkim_backend.dto.CommonResponse<TransferResponse>> transfer(
+    ResponseEntity<CommonResponse<TransferResponse>> transfer(
             TransferRequest request
     );
 
     @Operation(summary = "거래 내역 조회", description = "지정된 계좌의 거래 내역을 최신순으로 조회합니다. 페이징을 지원합니다.")
     @ApiResponse(responseCode = "200", description = "거래 내역 조회 성공")
     @CommonApiResponses.NotFound
-    ResponseEntity<com.jeongminkim_backend.dto.CommonResponse<Page<TransactionResponse>>> getTransactions(
+    ResponseEntity<CommonResponse<Page<TransactionResponse>>> getTransactions(
             @Parameter(description = "조회할 계좌번호", example = "1234567890", required = true)
             String accountNumber,
             @Parameter(description = "페이지 정보 (page, size, sort)", example = "page=0&size=20&sort=createdAt,desc")

@@ -36,7 +36,7 @@ public class TransactionResponse {
     @Schema(description = "상대방 계좌번호 (이체의 경우)", example = "0987654321", nullable = true)
     private String relatedAccountNumber;
 
-    @Schema(description = "거래 일시", example = "2024-01-15T10:35:00")
+    @Schema(description = "거래 일시", example = "2025-12-27T10:35:00")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
 

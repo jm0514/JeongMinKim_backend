@@ -25,7 +25,7 @@ public class CommonResponse<T> {
     @Schema(description = "응답 데이터")
     private final T data;
 
-    @Schema(description = "응답 시간", example = "2024-01-15T10:30:00")
+    @Schema(description = "응답 시간", example = "2025-12-27T10:30:00")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private final LocalDateTime timestamp;
 
