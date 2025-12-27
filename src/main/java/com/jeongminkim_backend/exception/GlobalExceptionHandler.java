@@ -1,6 +1,6 @@
 package com.jeongminkim_backend.exception;
 
-import com.jeongminkim_backend.dto.ApiResponse;
+import com.jeongminkim_backend.dto.CommonResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -18,11 +18,11 @@ public class GlobalExceptionHandler {
      * BusinessException 처리
      */
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException ex) {
+    public ResponseEntity<CommonResponse<Void>> handleBusinessException(BusinessException ex) {
         log.error("BusinessException: {}", ex.getMessage());
 
         ErrorCode errorCode = ex.getErrorCode();
-        ApiResponse<Void> response = ApiResponse.error(
+        CommonResponse<Void> response = CommonResponse.error(
                 errorCode.getCode(),
                 ex.getFullMessage()
         );
@@ -36,7 +36,7 @@ public class GlobalExceptionHandler {
      * {@code @Valid} 애노테이션 검증 실패 예외 처리
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+    public ResponseEntity<CommonResponse<Void>> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
         log.error("MethodArgumentNotValidException: {}", ex.getMessage());
 
         String validationMessages = ex.getBindingResult()
@@ -46,7 +46,7 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining(", "));
 
         ErrorCode errorCode = ErrorCode.VALIDATION_ERROR;
-        ApiResponse<Void> response = ApiResponse.error(
+        CommonResponse<Void> response = CommonResponse.error(
                 errorCode.getCode(),
                 validationMessages
         );
@@ -60,11 +60,11 @@ public class GlobalExceptionHandler {
      * IllegalArgumentException 처리
      */
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
+    public ResponseEntity<CommonResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
         log.error("IllegalArgumentException: {}", ex.getMessage());
 
         ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
-        ApiResponse<Void> response = ApiResponse.error(
+        CommonResponse<Void> response = CommonResponse.error(
                 errorCode.getCode(),
                 ex.getMessage()
         );
@@ -78,11 +78,11 @@ public class GlobalExceptionHandler {
      * 기타 예외 처리
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleException(Exception ex) {
+    public ResponseEntity<CommonResponse<Void>> handleException(Exception ex) {
         log.error("Unexpected Exception: ", ex);
 
         ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
-        ApiResponse<Void> response = ApiResponse.error(
+        CommonResponse<Void> response = CommonResponse.error(
                 errorCode.getCode(),
                 errorCode.getMessage()
         );

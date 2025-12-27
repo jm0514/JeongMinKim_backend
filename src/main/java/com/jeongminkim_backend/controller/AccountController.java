@@ -1,6 +1,7 @@
 package com.jeongminkim_backend.controller;
 
-import com.jeongminkim_backend.dto.ApiResponse;
+import com.jeongminkim_backend.controller.api.AccountApi;
+import com.jeongminkim_backend.dto.CommonResponse;
 import com.jeongminkim_backend.dto.request.CreateAccountRequest;
 import com.jeongminkim_backend.dto.response.AccountResponse;
 import com.jeongminkim_backend.dto.response.ResponseMessage;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/accounts")
 @RequiredArgsConstructor
-public class AccountController {
+public class AccountController implements AccountApi {
 
     private final AccountService accountService;
 
@@ -25,10 +26,10 @@ public class AccountController {
      * POST /api/v1/accounts
      */
     @PostMapping
-    public ResponseEntity<ApiResponse<AccountResponse>> createAccount(@Valid @RequestBody CreateAccountRequest request) {
+    public ResponseEntity<CommonResponse<AccountResponse>> createAccount(@Valid @RequestBody CreateAccountRequest request) {
         log.info("POST /api/v1/accounts - 계좌 생성 요청: {}", request.getAccountNumber());
         AccountResponse response = accountService.createAccount(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, ResponseMessage.ACCOUNT_CREATED));
+        return ResponseEntity.status(HttpStatus.CREATED).body(CommonResponse.success(response, ResponseMessage.ACCOUNT_CREATED));
     }
 
     /**
@@ -36,10 +37,10 @@ public class AccountController {
      * GET /api/v1/accounts/{accountNumber}
      */
     @GetMapping("/{accountNumber}")
-    public ResponseEntity<ApiResponse<AccountResponse>> getAccount(@PathVariable String accountNumber) {
+    public ResponseEntity<CommonResponse<AccountResponse>> getAccount(@PathVariable String accountNumber) {
         log.info("GET /api/v1/accounts/{} - 계좌 조회 요청", accountNumber);
         AccountResponse response = accountService.getAccount(accountNumber);
-        return ResponseEntity.ok(ApiResponse.success(response, ResponseMessage.ACCOUNT_RETRIEVED));
+        return ResponseEntity.ok(CommonResponse.success(response, ResponseMessage.ACCOUNT_RETRIEVED));
     }
 
     /**
@@ -47,9 +48,9 @@ public class AccountController {
      * DELETE /api/v1/accounts/{accountNumber}
      */
     @DeleteMapping("/{accountNumber}")
-    public ResponseEntity<ApiResponse<Void>> deleteAccount(@PathVariable String accountNumber) {
+    public ResponseEntity<CommonResponse<Void>> deleteAccount(@PathVariable String accountNumber) {
         log.info("DELETE /api/v1/accounts/{} - 계좌 삭제 요청", accountNumber);
         accountService.deleteAccount(accountNumber);
-        return ResponseEntity.ok(ApiResponse.success(ResponseMessage.ACCOUNT_DELETED));
+        return ResponseEntity.ok(CommonResponse.success(ResponseMessage.ACCOUNT_DELETED));
     }
 }
