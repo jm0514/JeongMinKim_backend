@@ -97,9 +97,10 @@ public class Account extends BaseTimeEntity {
 
     /**
      * 계좌 삭제 (Soft Delete)
+     * @param deletedAt 삭제 시간
      */
-    public void delete() {
-        this.deletedAt = LocalDateTime.now();
+    public void delete(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
     }
 
     /**

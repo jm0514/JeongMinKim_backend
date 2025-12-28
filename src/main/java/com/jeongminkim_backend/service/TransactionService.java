@@ -1,5 +1,6 @@
 package com.jeongminkim_backend.service;
 
+import com.jeongminkim_backend.common.time.TimeProvider;
 import com.jeongminkim_backend.domain.entity.Account;
 import com.jeongminkim_backend.domain.entity.Transaction;
 import com.jeongminkim_backend.domain.enums.TransactionType;
@@ -19,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
@@ -31,6 +31,7 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final AccountService accountService;
+    private final TimeProvider timeProvider;
 
     private static final BigDecimal DAILY_WITHDRAWAL_LIMIT = new BigDecimal("1000000"); // 일일 출금 한도: 100만원
     private static final BigDecimal DAILY_TRANSFER_LIMIT = new BigDecimal("3000000");   // 일일 이체 한도: 300만원
@@ -166,8 +167,8 @@ public class TransactionService {
      * 일일 출금 한도 체크
      */
     private void checkDailyWithdrawalLimit(Long accountId, BigDecimal amount) {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
+        LocalDateTime startOfDay = timeProvider.now().toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = timeProvider.now().toLocalDate().atTime(LocalTime.MAX);
 
         BigDecimal todayWithdrawalAmount = transactionRepository.sumAmountByAccountIdAndTypeAndDateRange(
                 accountId,
@@ -189,8 +190,8 @@ public class TransactionService {
      * 일일 이체 한도 체크
      */
     private void checkDailyTransferLimit(Long accountId, BigDecimal amount) {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
+        LocalDateTime startOfDay = timeProvider.now().toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = timeProvider.now().toLocalDate().atTime(LocalTime.MAX);
 
         BigDecimal todayTransferAmount = transactionRepository.sumAmountByAccountIdAndTypeAndDateRange(
                 accountId,
@@ -212,7 +213,7 @@ public class TransactionService {
      * 이체 ID 생성
      */
     private String generateTransferId(Long transactionId) {
-        String date = LocalDate.now().toString().replace("-", "");
+        String date = timeProvider.now().toLocalDate().toString().replace("-", "");
         return String.format("TRF-%s-%06d", date, transactionId);
     }
 }

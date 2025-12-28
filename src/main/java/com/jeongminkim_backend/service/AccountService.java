@@ -1,5 +1,6 @@
 package com.jeongminkim_backend.service;
 
+import com.jeongminkim_backend.common.time.TimeProvider;
 import com.jeongminkim_backend.domain.entity.Account;
 import com.jeongminkim_backend.dto.request.CreateAccountRequest;
 import com.jeongminkim_backend.dto.response.AccountResponse;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AccountService {
 
     private final AccountRepository accountRepository;
+    private final TimeProvider timeProvider;
 
     /**
      * 계좌 생성
@@ -59,7 +61,7 @@ public class AccountService {
         Account account = accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND, accountNumber));
 
-        account.delete();
+        account.delete(timeProvider.now());
         log.info("계좌 삭제 완료 (Soft Delete): {}", accountNumber);
     }
 
