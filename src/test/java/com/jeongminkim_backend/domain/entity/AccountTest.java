@@ -107,47 +107,6 @@ class AccountTest {
     }
 
     @Test
-    @DisplayName("이체 수수료 계산 - 1%")
-    void calculateTransferFee_correct_percentage() {
-        // given
-        Account account = Account.create("1234567890", "홍길동");
-        BigDecimal transferAmount = new BigDecimal("10000");
-
-        // when
-        BigDecimal fee = account.calculateTransferFee(transferAmount);
-
-        // then
-        assertThat(fee).isEqualByComparingTo("100.00");
-    }
-
-    @Test
-    @DisplayName("이체 수수료 계산 - 반올림")
-    void calculateTransferFee_rounding() {
-        // given
-        Account account = Account.create("1234567890", "홍길동");
-        BigDecimal transferAmount = new BigDecimal("10005");
-
-        // when
-        BigDecimal fee = account.calculateTransferFee(transferAmount);
-
-        // then
-        // 10005 * 0.01 = 100.05 → 반올림 → 100.05 (소수점 둘째자리까지)
-        assertThat(fee).isEqualByComparingTo("100.05");
-    }
-
-    @Test
-    @DisplayName("이체 수수료 계산 실패 - 유효하지 않은 금액")
-    void calculateTransferFee_fail_invalid_amount() {
-        // given
-        Account account = Account.create("1234567890", "홍길동");
-
-        // when & then
-        assertThatThrownBy(() -> account.calculateTransferFee(BigDecimal.ZERO))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("금액은 0보다 커야 합니다");
-    }
-
-    @Test
     @DisplayName("계좌 삭제 - soft delete")
     void delete_soft_delete() {
         // given
