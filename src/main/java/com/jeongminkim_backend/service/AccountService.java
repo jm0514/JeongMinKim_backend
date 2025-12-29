@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AccountService {
 
     private final AccountRepository accountRepository;
+    private final AccountReader accountReader;
     private final TimeProvider timeProvider;
 
     /**
@@ -45,8 +46,7 @@ public class AccountService {
     public AccountResponse getAccount(String accountNumber) {
         log.info("계좌 조회: {}", accountNumber);
 
-        Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND, accountNumber));
+        Account account = accountReader.findByAccountNumber(accountNumber);
 
         return AccountResponse.from(account);
     }
@@ -58,26 +58,9 @@ public class AccountService {
     public void deleteAccount(String accountNumber) {
         log.info("계좌 삭제 시작: {}", accountNumber);
 
-        Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND, accountNumber));
+        Account account = accountReader.findByAccountNumber(accountNumber);
 
         account.delete(timeProvider.now());
         log.info("계좌 삭제 완료 (Soft Delete): {}", accountNumber);
-    }
-
-    /**
-     * 계좌 조회 (락 없음)
-     */
-    public Account findAccountByAccountNumber(String accountNumber) {
-        return accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND, accountNumber));
-    }
-
-    /**
-     * 계좌 조회 (비관적 락)
-     */
-    public Account findAccountByAccountNumberWithLock(String accountNumber) {
-        return accountRepository.findByAccountNumberWithLock(accountNumber)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND, accountNumber));
     }
 }
