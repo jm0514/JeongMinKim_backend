@@ -12,6 +12,9 @@ import com.jeongminkim_backend.dto.response.TransferResponse;
 import com.jeongminkim_backend.exception.BusinessException;
 import com.jeongminkim_backend.exception.ErrorCode;
 import com.jeongminkim_backend.repository.TransactionRepository;
+import com.jeongminkim_backend.service.policy.FeeCalculator;
+import com.jeongminkim_backend.service.policy.TransferLimitChecker;
+import com.jeongminkim_backend.service.policy.WithdrawalLimitChecker;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,7 +45,16 @@ class TransactionServiceTest {
     private TransactionRepository transactionRepository;
 
     @Mock
-    private AccountService accountService;
+    private AccountReader accountReader;
+
+    @Mock
+    private FeeCalculator feeCalculator;
+
+    @Mock
+    private WithdrawalLimitChecker withdrawalLimitChecker;
+
+    @Mock
+    private TransferLimitChecker transferLimitChecker;
 
     @Mock
     private TimeProvider timeProvider;
@@ -67,7 +79,7 @@ class TransactionServiceTest {
                 new BigDecimal("10000")
         );
 
-        when(accountService.findAccountByAccountNumber("1234567890"))
+        when(accountReader.findByAccountNumber("1234567890"))
                 .thenReturn(account);
         when(transactionRepository.save(any(Transaction.class)))
                 .thenReturn(savedTransaction);
@@ -81,7 +93,7 @@ class TransactionServiceTest {
         assertThat(response.getAmount()).isEqualByComparingTo("10000");
         assertThat(response.getFee()).isEqualByComparingTo(BigDecimal.ZERO);
 
-        verify(accountService).findAccountByAccountNumber("1234567890");
+        verify(accountReader).findByAccountNumber("1234567890");
         verify(transactionRepository).save(any(Transaction.class));
     }
 
@@ -94,7 +106,7 @@ class TransactionServiceTest {
                 .amount(new BigDecimal("10000"))
                 .build();
 
-        when(accountService.findAccountByAccountNumber("1234567890"))
+        when(accountReader.findByAccountNumber("1234567890"))
                 .thenThrow(new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND, "1234567890"));
 
         // when & then
@@ -102,7 +114,7 @@ class TransactionServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_NOT_FOUND);
 
-        verify(accountService).findAccountByAccountNumber("1234567890");
+        verify(accountReader).findByAccountNumber("1234567890");
         verify(transactionRepository, never()).save(any(Transaction.class));
     }
 
@@ -118,17 +130,9 @@ class TransactionServiceTest {
         Account account = Account.create("1234567890", "홍길동");
         account.deposit(new BigDecimal("50000"));
 
-        LocalDateTime now = LocalDateTime.of(2024, 1, 15, 10, 0);
-
-        when(accountService.findAccountByAccountNumberWithLock("1234567890"))
+        when(accountReader.findByAccountNumberWithLock("1234567890"))
                 .thenReturn(account);
-        when(timeProvider.now()).thenReturn(now);
-        when(transactionRepository.sumAmountByAccountIdAndTypeAndDateRange(
-                any(),
-                eq(TransactionType.WITHDRAWAL),
-                any(),
-                any()
-        )).thenReturn(BigDecimal.ZERO);
+        doNothing().when(withdrawalLimitChecker).checkLimit(any(), any());
         when(transactionRepository.save(any(Transaction.class)))
                 .thenReturn(Transaction.createWithdrawal(1L, new BigDecimal("5000"), new BigDecimal("45000")));
 
@@ -140,7 +144,8 @@ class TransactionServiceTest {
         assertThat(response.getAmount()).isEqualByComparingTo("5000");
         assertThat(account.getBalance()).isEqualByComparingTo("45000");
 
-        verify(accountService).findAccountByAccountNumberWithLock("1234567890");
+        verify(accountReader).findByAccountNumberWithLock("1234567890");
+        verify(withdrawalLimitChecker).checkLimit(any(), eq(new BigDecimal("5000")));
         verify(transactionRepository).save(any(Transaction.class));
     }
 
@@ -156,24 +161,17 @@ class TransactionServiceTest {
         Account account = Account.create("1234567890", "홍길동");
         account.deposit(new BigDecimal("500000"));
 
-        LocalDateTime now = LocalDateTime.of(2024, 1, 15, 10, 0);
-
-        when(accountService.findAccountByAccountNumberWithLock("1234567890"))
+        when(accountReader.findByAccountNumberWithLock("1234567890"))
                 .thenReturn(account);
-        when(timeProvider.now()).thenReturn(now);
-        when(transactionRepository.sumAmountByAccountIdAndTypeAndDateRange(
-                any(),
-                eq(TransactionType.WITHDRAWAL),
-                eq(now.toLocalDate().atStartOfDay()),
-                eq(now.toLocalDate().atTime(LocalTime.MAX))
-        )).thenReturn(new BigDecimal("900000"));
+        doThrow(new BusinessException(ErrorCode.DAILY_WITHDRAWAL_LIMIT_EXCEEDED, "한도 초과"))
+                .when(withdrawalLimitChecker).checkLimit(any(), eq(new BigDecimal("200000")));
 
         // when & then
         assertThatThrownBy(() -> transactionService.withdraw(request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DAILY_WITHDRAWAL_LIMIT_EXCEEDED);
 
-        verify(accountService).findAccountByAccountNumberWithLock("1234567890");
+        verify(accountReader).findByAccountNumberWithLock("1234567890");
         verify(transactionRepository, never()).save(any(Transaction.class));
     }
 
@@ -189,17 +187,9 @@ class TransactionServiceTest {
         Account account = Account.create("1234567890", "홍길동");
         account.deposit(new BigDecimal("2000000"));
 
-        LocalDateTime now = LocalDateTime.of(2024, 1, 15, 10, 0);
-
-        when(accountService.findAccountByAccountNumberWithLock("1234567890"))
+        when(accountReader.findByAccountNumberWithLock("1234567890"))
                 .thenReturn(account);
-        when(timeProvider.now()).thenReturn(now);
-        when(transactionRepository.sumAmountByAccountIdAndTypeAndDateRange(
-                any(),
-                eq(TransactionType.WITHDRAWAL),
-                any(),
-                any()
-        )).thenReturn(BigDecimal.ZERO);
+        doNothing().when(withdrawalLimitChecker).checkLimit(any(), any());
         when(transactionRepository.save(any(Transaction.class)))
                 .thenReturn(Transaction.createWithdrawal(1L, new BigDecimal("1000000"), new BigDecimal("1000000")));
 
@@ -230,17 +220,14 @@ class TransactionServiceTest {
 
         LocalDateTime now = LocalDateTime.of(2024, 1, 15, 10, 0);
 
-        when(accountService.findAccountByAccountNumberWithLock("1234567890"))
+        when(accountReader.findByAccountNumberWithLock("1234567890"))
                 .thenReturn(fromAccount);
-        when(accountService.findAccountByAccountNumberWithLock("0987654321"))
+        when(accountReader.findByAccountNumberWithLock("0987654321"))
                 .thenReturn(toAccount);
+        when(feeCalculator.calculate(new BigDecimal("10000")))
+                .thenReturn(new BigDecimal("100"));
+        doNothing().when(transferLimitChecker).checkLimit(any(), any());
         when(timeProvider.now()).thenReturn(now);
-        when(transactionRepository.sumAmountByAccountIdAndTypeAndDateRange(
-                any(),
-                eq(TransactionType.TRANSFER_OUT),
-                any(),
-                any()
-        )).thenReturn(BigDecimal.ZERO);
         when(transactionRepository.save(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -258,6 +245,8 @@ class TransactionServiceTest {
         assertThat(fromAccount.getBalance()).isEqualByComparingTo("39900");
         assertThat(toAccount.getBalance()).isEqualByComparingTo("10000");
 
+        verify(feeCalculator).calculate(new BigDecimal("10000"));
+        verify(transferLimitChecker).checkLimit(any(), eq(new BigDecimal("10000")));
         verify(transactionRepository, times(2)).save(any(Transaction.class));
     }
 
@@ -295,19 +284,14 @@ class TransactionServiceTest {
 
         Account toAccount = Account.create("0987654321", "김철수");
 
-        LocalDateTime now = LocalDateTime.of(2024, 1, 15, 10, 0);
-
-        when(accountService.findAccountByAccountNumberWithLock("1234567890"))
+        when(accountReader.findByAccountNumberWithLock("1234567890"))
                 .thenReturn(fromAccount);
-        when(accountService.findAccountByAccountNumberWithLock("0987654321"))
+        when(accountReader.findByAccountNumberWithLock("0987654321"))
                 .thenReturn(toAccount);
-        when(timeProvider.now()).thenReturn(now);
-        when(transactionRepository.sumAmountByAccountIdAndTypeAndDateRange(
-                any(),
-                eq(TransactionType.TRANSFER_OUT),
-                any(),
-                any()
-        )).thenReturn(new BigDecimal("2500000"));
+        when(feeCalculator.calculate(new BigDecimal("600000")))
+                .thenReturn(new BigDecimal("6000"));
+        doThrow(new BusinessException(ErrorCode.DAILY_TRANSFER_LIMIT_EXCEEDED, "한도 초과"))
+                .when(transferLimitChecker).checkLimit(any(), eq(new BigDecimal("600000")));
 
         // when & then
         assertThatThrownBy(() -> transactionService.transfer(request))
@@ -330,7 +314,7 @@ class TransactionServiceTest {
         Pageable pageable = PageRequest.of(0, 20);
         Page<Transaction> transactionPage = new PageImpl<>(List.of(tx1, tx2), pageable, 2);
 
-        when(accountService.findAccountByAccountNumber(accountNumber))
+        when(accountReader.findByAccountNumber(accountNumber))
                 .thenReturn(account);
         when(transactionRepository.findByAccountIdOrderByCreatedAtDesc(any(), eq(pageable)))
                 .thenReturn(transactionPage);
@@ -344,7 +328,7 @@ class TransactionServiceTest {
         assertThat(response.getContent().get(0).getTransactionType()).isEqualTo(TransactionType.DEPOSIT);
         assertThat(response.getContent().get(1).getTransactionType()).isEqualTo(TransactionType.WITHDRAWAL);
 
-        verify(accountService).findAccountByAccountNumber(accountNumber);
+        verify(accountReader).findByAccountNumber(accountNumber);
         verify(transactionRepository).findByAccountIdOrderByCreatedAtDesc(any(), eq(pageable));
     }
 }

@@ -16,7 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -29,6 +28,9 @@ class AccountServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
+    @Mock
+    private AccountReader accountReader;
 
     @Mock
     private TimeProvider timeProvider;
@@ -92,8 +94,8 @@ class AccountServiceTest {
         Account account = Account.create("1234567890", "홍길동");
         account.deposit(new BigDecimal("50000"));
 
-        when(accountRepository.findByAccountNumber("1234567890"))
-                .thenReturn(Optional.of(account));
+        when(accountReader.findByAccountNumber("1234567890"))
+                .thenReturn(account);
 
         // when
         AccountResponse response = accountService.getAccount("1234567890");
@@ -103,22 +105,22 @@ class AccountServiceTest {
         assertThat(response.getOwnerName()).isEqualTo("홍길동");
         assertThat(response.getBalance()).isEqualByComparingTo("50000");
 
-        verify(accountRepository).findByAccountNumber("1234567890");
+        verify(accountReader).findByAccountNumber("1234567890");
     }
 
     @Test
     @DisplayName("계좌 조회 실패 - 존재하지 않는 계좌")
     void getAccount_fail_notFound() {
         // given
-        when(accountRepository.findByAccountNumber("1234567890"))
-                .thenReturn(Optional.empty());
+        when(accountReader.findByAccountNumber("1234567890"))
+                .thenThrow(new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND, "1234567890"));
 
         // when & then
         assertThatThrownBy(() -> accountService.getAccount("1234567890"))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_NOT_FOUND);
 
-        verify(accountRepository).findByAccountNumber("1234567890");
+        verify(accountReader).findByAccountNumber("1234567890");
     }
 
     @Test
@@ -130,8 +132,8 @@ class AccountServiceTest {
 
         Account account = Account.create(accountNumber, "홍길동");
 
-        when(accountRepository.findByAccountNumber(accountNumber))
-                .thenReturn(Optional.of(account));
+        when(accountReader.findByAccountNumber(accountNumber))
+                .thenReturn(account);
         when(timeProvider.now())
                 .thenReturn(fixedTime);
 
@@ -142,7 +144,7 @@ class AccountServiceTest {
         assertThat(account.getDeletedAt()).isEqualTo(fixedTime);
         assertThat(account.isDeleted()).isTrue();
 
-        verify(accountRepository).findByAccountNumber(accountNumber);
+        verify(accountReader).findByAccountNumber(accountNumber);
         verify(timeProvider).now();
     }
 
@@ -150,14 +152,14 @@ class AccountServiceTest {
     @DisplayName("계좌 삭제 실패 - 존재하지 않는 계좌")
     void deleteAccount_fail_notFound() {
         // given
-        when(accountRepository.findByAccountNumber("1234567890"))
-                .thenReturn(Optional.empty());
+        when(accountReader.findByAccountNumber("1234567890"))
+                .thenThrow(new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND, "1234567890"));
 
         // when & then
         assertThatThrownBy(() -> accountService.deleteAccount("1234567890"))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_NOT_FOUND);
 
-        verify(accountRepository).findByAccountNumber("1234567890");
+        verify(accountReader).findByAccountNumber("1234567890");
     }
 }
