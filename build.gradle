@@ -1,51 +1,39 @@
 plugins {
-    id 'java'
-    id 'org.springframework.boot' version '3.4.1'
-    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.springframework.boot' version '3.4.1' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
 }
 
-group = 'com'
-version = '0.0.1-SNAPSHOT'
-description = 'jeongminkim_backend'
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+    group = 'com.jeongminkim'
+    version = '0.0.1-SNAPSHOT'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
     }
-}
 
-configurations {
-    compileOnly {
-        extendsFrom annotationProcessor
+    repositories {
+        mavenCentral()
     }
-}
 
-repositories {
-    mavenCentral()
-}
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
 
-dependencies {
-    // Spring Boot Starters
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    dependencies {
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
 
-    // Database
-    runtimeOnly 'com.mysql:mysql-connector-j'
-
-    // Lombok
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-
-    // SpringDoc OpenAPI (Swagger)
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
-
-    // Test
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'com.h2database:h2'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
-
-tasks.named('test') {
-    useJUnitPlatform()
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
 }

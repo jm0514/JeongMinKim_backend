@@ -1,1 +1,5 @@
-rootProject.name = 'jeongminkim_backend'
+rootProject.name = 'jeongminkim-backend'
+
+include 'jeongminkim-core'
+include 'jeongminkim-application'
+include 'jeongminkim-api'
