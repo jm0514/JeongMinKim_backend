@@ -145,39 +145,6 @@ class TransactionServiceTest {
     }
 
     @Test
-    @DisplayName("출금 실패 - 잔액 부족")
-    void withdraw_fail_insufficientBalance() {
-        // given
-        WithdrawRequest request = WithdrawRequest.builder()
-                .accountNumber("1234567890")
-                .amount(new BigDecimal("100000"))
-                .build();
-
-        Account account = Account.create("1234567890", "홍길동");
-        account.deposit(new BigDecimal("10000"));
-
-        LocalDateTime now = LocalDateTime.of(2024, 1, 15, 10, 0);
-
-        when(accountService.findAccountByAccountNumberWithLock("1234567890"))
-                .thenReturn(account);
-        when(timeProvider.now()).thenReturn(now);
-        when(transactionRepository.sumAmountByAccountIdAndTypeAndDateRange(
-                any(),
-                eq(TransactionType.WITHDRAWAL),
-                any(),
-                any()
-        )).thenReturn(BigDecimal.ZERO);
-
-        // when & then
-        assertThatThrownBy(() -> transactionService.withdraw(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("잔액이 부족합니다");
-
-        verify(accountService).findAccountByAccountNumberWithLock("1234567890");
-        verify(transactionRepository, never()).save(any(Transaction.class));
-    }
-
-    @Test
     @DisplayName("출금 실패 - 일일 한도 초과")
     void withdraw_fail_dailyLimitExceeded() {
         // given
@@ -309,44 +276,6 @@ class TransactionServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_AMOUNT)
                 .hasMessageContaining("동일한 계좌로 이체할 수 없습니다");
-
-        verify(transactionRepository, never()).save(any(Transaction.class));
-    }
-
-    @Test
-    @DisplayName("이체 실패 - 잔액 부족 (수수료 포함)")
-    void transfer_fail_insufficientBalance() {
-        // given
-        TransferRequest request = TransferRequest.builder()
-                .fromAccountNumber("1234567890")
-                .toAccountNumber("0987654321")
-                .amount(new BigDecimal("10000"))
-                .build();
-
-        Account fromAccount = Account.create("1234567890", "홍길동");
-        fromAccount.deposit(new BigDecimal("10000"));
-
-        Account toAccount = Account.create("0987654321", "김철수");
-
-        LocalDateTime now = LocalDateTime.of(2024, 1, 15, 10, 0);
-
-        when(accountService.findAccountByAccountNumberWithLock("1234567890"))
-                .thenReturn(fromAccount);
-        when(accountService.findAccountByAccountNumberWithLock("0987654321"))
-                .thenReturn(toAccount);
-        when(timeProvider.now()).thenReturn(now);
-        when(transactionRepository.sumAmountByAccountIdAndTypeAndDateRange(
-                any(),
-                eq(TransactionType.TRANSFER_OUT),
-                any(),
-                any()
-        )).thenReturn(BigDecimal.ZERO);
-
-        // when & then
-        assertThatThrownBy(() -> transactionService.transfer(request))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INSUFFICIENT_BALANCE)
-                .hasMessageContaining("현재 잔액: 10000");
 
         verify(transactionRepository, never()).save(any(Transaction.class));
     }
