@@ -7,7 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
 @Entity
@@ -15,9 +14,6 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Account extends BaseTimeEntity {
-
-    // 이체 수수료율: 1%
-    private static final BigDecimal TRANSFER_FEE_RATE = new BigDecimal("0.01");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -72,17 +68,6 @@ public class Account extends BaseTimeEntity {
      */
     public boolean hasEnoughBalance(BigDecimal amount) {
         return this.balance.compareTo(amount) >= 0;
-    }
-
-    /**
-     * 이체 수수료 계산
-     * @param amount 이체 금액
-     * @return 수수료 (이체 금액의 1%, 소수점 둘째자리 반올림)
-     */
-    public BigDecimal calculateTransferFee(BigDecimal amount) {
-        validateAmount(amount);
-        return amount.multiply(TRANSFER_FEE_RATE)
-                .setScale(2, RoundingMode.HALF_UP);
     }
 
     /**

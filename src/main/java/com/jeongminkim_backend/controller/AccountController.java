@@ -2,6 +2,7 @@ package com.jeongminkim_backend.controller;
 
 import com.jeongminkim_backend.controller.api.AccountApi;
 import com.jeongminkim_backend.dto.CommonResponse;
+import com.jeongminkim_backend.dto.CommonResponseFactory;
 import com.jeongminkim_backend.dto.request.CreateAccountRequest;
 import com.jeongminkim_backend.dto.response.AccountResponse;
 import com.jeongminkim_backend.dto.response.ResponseMessage;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class AccountController implements AccountApi {
 
     private final AccountService accountService;
+    private final CommonResponseFactory commonResponseFactory;
 
     /**
      * 계좌 생성
@@ -29,7 +31,8 @@ public class AccountController implements AccountApi {
     public ResponseEntity<CommonResponse<AccountResponse>> createAccount(@Valid @RequestBody CreateAccountRequest request) {
         log.info("POST /api/v1/accounts - 계좌 생성 요청: {}", request.getAccountNumber());
         AccountResponse response = accountService.createAccount(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(CommonResponse.success(response, ResponseMessage.ACCOUNT_CREATED));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(commonResponseFactory.success(response, ResponseMessage.ACCOUNT_CREATED));
     }
 
     /**
@@ -40,7 +43,7 @@ public class AccountController implements AccountApi {
     public ResponseEntity<CommonResponse<AccountResponse>> getAccount(@PathVariable String accountNumber) {
         log.info("GET /api/v1/accounts/{} - 계좌 조회 요청", accountNumber);
         AccountResponse response = accountService.getAccount(accountNumber);
-        return ResponseEntity.ok(CommonResponse.success(response, ResponseMessage.ACCOUNT_RETRIEVED));
+        return ResponseEntity.ok(commonResponseFactory.success(response, ResponseMessage.ACCOUNT_RETRIEVED));
     }
 
     /**

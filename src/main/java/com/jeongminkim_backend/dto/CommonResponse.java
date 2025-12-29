@@ -30,41 +30,41 @@ public class CommonResponse<T> {
     private final LocalDateTime timestamp;
 
     /**
-     * 성공 응답 (데이터 있음, ResponseMessage 사용)
+     * 성공 응답 생성 (데이터 있음)
      */
-    public static <T> CommonResponse<T> success(T data, ResponseMessage responseMessage) {
+    public static <T> CommonResponse<T> success(T data, ResponseMessage responseMessage, LocalDateTime timestamp) {
         return CommonResponse.<T>builder()
                 .success(true)
                 .code(responseMessage.getCode())
                 .message(responseMessage.getMessage())
                 .data(data)
-                .timestamp(LocalDateTime.now())
+                .timestamp(timestamp)
                 .build();
     }
 
     /**
-     * 성공 응답 (데이터 없음, ResponseMessage 사용)
+     * 성공 응답 생성 (데이터 없음)
      */
-    public static <T> CommonResponse<T> success(ResponseMessage responseMessage) {
+    public static <T> CommonResponse<T> success(ResponseMessage responseMessage, LocalDateTime timestamp) {
         return CommonResponse.<T>builder()
                 .success(true)
                 .code(responseMessage.getCode())
                 .message(responseMessage.getMessage())
                 .data(null)
-                .timestamp(LocalDateTime.now())
+                .timestamp(timestamp)
                 .build();
     }
 
     /**
-     * 실패 응답
+     * 실패 응답 생성
      */
-    public static <T> CommonResponse<T> error(String code, String message) {
+    public static <T> CommonResponse<T> error(String code, String message, LocalDateTime timestamp) {
         return CommonResponse.<T>builder()
                 .success(false)
                 .code(code)
                 .message(message)
                 .data(null)
-                .timestamp(LocalDateTime.now())
+                .timestamp(timestamp)
                 .build();
     }
 }

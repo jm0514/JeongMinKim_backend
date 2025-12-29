@@ -2,6 +2,7 @@ package com.jeongminkim_backend.controller;
 
 import com.jeongminkim_backend.controller.api.TransactionApi;
 import com.jeongminkim_backend.dto.CommonResponse;
+import com.jeongminkim_backend.dto.CommonResponseFactory;
 import com.jeongminkim_backend.dto.request.DepositRequest;
 import com.jeongminkim_backend.dto.request.TransferRequest;
 import com.jeongminkim_backend.dto.request.WithdrawRequest;
@@ -26,7 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class TransactionController implements TransactionApi {
 
     private final TransactionService transactionService;
-
+    private final CommonResponseFactory commonResponseFactory;
     /**
      * 입금
      * POST /api/v1/transactions/deposit
@@ -36,7 +37,7 @@ public class TransactionController implements TransactionApi {
         log.info("POST /api/v1/transactions/deposit - 입금 요청: 계좌={}, 금액={}",
                 request.getAccountNumber(), request.getAmount());
         TransactionResponse response = transactionService.deposit(request);
-        return ResponseEntity.ok(CommonResponse.success(response, ResponseMessage.DEPOSIT_SUCCESS));
+        return ResponseEntity.ok(commonResponseFactory.success(response, ResponseMessage.DEPOSIT_SUCCESS));
     }
 
     /**
@@ -48,7 +49,7 @@ public class TransactionController implements TransactionApi {
         log.info("POST /api/v1/transactions/withdraw - 출금 요청: 계좌={}, 금액={}",
                 request.getAccountNumber(), request.getAmount());
         TransactionResponse response = transactionService.withdraw(request);
-        return ResponseEntity.ok(CommonResponse.success(response, ResponseMessage.WITHDRAWAL_SUCCESS));
+        return ResponseEntity.ok(commonResponseFactory.success(response, ResponseMessage.WITHDRAWAL_SUCCESS));
     }
 
     /**
@@ -60,7 +61,7 @@ public class TransactionController implements TransactionApi {
         log.info("POST /api/v1/transactions/transfer - 이체 요청: 출금계좌={}, 입금계좌={}, 금액={}",
                 request.getFromAccountNumber(), request.getToAccountNumber(), request.getAmount());
         TransferResponse response = transactionService.transfer(request);
-        return ResponseEntity.ok(CommonResponse.success(response, ResponseMessage.TRANSFER_SUCCESS));
+        return ResponseEntity.ok(commonResponseFactory.success(response, ResponseMessage.TRANSFER_SUCCESS));
     }
 
     /**
@@ -75,6 +76,6 @@ public class TransactionController implements TransactionApi {
         log.info("GET /api/v1/transactions - 거래 내역 조회: 계좌={}, page={}, size={}",
                 accountNumber, pageable.getPageNumber(), pageable.getPageSize());
         Page<TransactionResponse> response = transactionService.getTransactions(accountNumber, pageable);
-        return ResponseEntity.ok(CommonResponse.success(response, ResponseMessage.TRANSACTION_HISTORY_RETRIEVED));
+        return ResponseEntity.ok(commonResponseFactory.success(response, ResponseMessage.TRANSACTION_HISTORY_RETRIEVED));
     }
 }

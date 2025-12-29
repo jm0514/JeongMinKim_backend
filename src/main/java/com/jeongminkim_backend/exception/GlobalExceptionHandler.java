@@ -1,6 +1,8 @@
 package com.jeongminkim_backend.exception;
 
 import com.jeongminkim_backend.dto.CommonResponse;
+import com.jeongminkim_backend.dto.CommonResponseFactory;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -12,7 +14,10 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final CommonResponseFactory commonResponseFactory;
 
     /**
      * BusinessException 처리
@@ -22,7 +27,7 @@ public class GlobalExceptionHandler {
         log.error("BusinessException: {}", ex.getMessage());
 
         ErrorCode errorCode = ex.getErrorCode();
-        CommonResponse<Void> response = CommonResponse.error(
+        CommonResponse<Void> response = commonResponseFactory.error(
                 errorCode.getCode(),
                 ex.getFullMessage()
         );
@@ -46,7 +51,7 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining(", "));
 
         ErrorCode errorCode = ErrorCode.VALIDATION_ERROR;
-        CommonResponse<Void> response = CommonResponse.error(
+        CommonResponse<Void> response = commonResponseFactory.error(
                 errorCode.getCode(),
                 validationMessages
         );
@@ -64,7 +69,7 @@ public class GlobalExceptionHandler {
         log.error("IllegalArgumentException: {}", ex.getMessage());
 
         ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
-        CommonResponse<Void> response = CommonResponse.error(
+        CommonResponse<Void> response = commonResponseFactory.error(
                 errorCode.getCode(),
                 ex.getMessage()
         );
@@ -82,7 +87,7 @@ public class GlobalExceptionHandler {
         log.error("Unexpected Exception: ", ex);
 
         ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
-        CommonResponse<Void> response = CommonResponse.error(
+        CommonResponse<Void> response = commonResponseFactory.error(
                 errorCode.getCode(),
                 errorCode.getMessage()
         );
