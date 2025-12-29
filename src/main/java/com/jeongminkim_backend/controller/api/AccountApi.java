@@ -33,10 +33,9 @@ public interface AccountApi {
     );
 
     @Operation(summary = "계좌 삭제", description = "계좌번호로 계좌를 삭제합니다.")
-    @ApiResponse(responseCode = "200", description = "계좌 삭제 성공",
-            content = @Content(mediaType = "application/json"))
+    @ApiResponse(responseCode = "204", description = "계좌 삭제 성공")
     @CommonApiResponses.NotFound
-    ResponseEntity<CommonResponse<Void>> deleteAccount(
+    ResponseEntity<Void> deleteAccount(
             @Parameter(description = "삭제할 계좌번호", example = "1234567890", required = true)
             String accountNumber
     );

@@ -48,9 +48,9 @@ public class AccountController implements AccountApi {
      * DELETE /api/v1/accounts/{accountNumber}
      */
     @DeleteMapping("/{accountNumber}")
-    public ResponseEntity<CommonResponse<Void>> deleteAccount(@PathVariable String accountNumber) {
+    public ResponseEntity<Void> deleteAccount(@PathVariable String accountNumber) {
         log.info("DELETE /api/v1/accounts/{} - 계좌 삭제 요청", accountNumber);
         accountService.deleteAccount(accountNumber);
-        return ResponseEntity.ok(CommonResponse.success(ResponseMessage.ACCOUNT_DELETED));
+        return ResponseEntity.noContent().build();
     }
 }
