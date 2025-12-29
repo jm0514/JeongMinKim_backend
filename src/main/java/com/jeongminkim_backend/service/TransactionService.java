@@ -3,7 +3,6 @@ package com.jeongminkim_backend.service;
 import com.jeongminkim_backend.common.time.TimeProvider;
 import com.jeongminkim_backend.domain.entity.Account;
 import com.jeongminkim_backend.domain.entity.Transaction;
-import com.jeongminkim_backend.domain.enums.TransactionType;
 import com.jeongminkim_backend.dto.request.DepositRequest;
 import com.jeongminkim_backend.dto.request.TransferRequest;
 import com.jeongminkim_backend.dto.request.WithdrawRequest;
@@ -12,6 +11,9 @@ import com.jeongminkim_backend.dto.response.TransferResponse;
 import com.jeongminkim_backend.exception.BusinessException;
 import com.jeongminkim_backend.exception.ErrorCode;
 import com.jeongminkim_backend.repository.TransactionRepository;
+import com.jeongminkim_backend.service.policy.FeeCalculator;
+import com.jeongminkim_backend.service.policy.WithdrawalLimitChecker;
+import com.jeongminkim_backend.service.policy.TransferLimitChecker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -20,8 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 @Slf4j
 @Service
@@ -30,11 +30,11 @@ import java.time.LocalTime;
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
-    private final AccountService accountService;
+    private final AccountReader accountReader;
+    private final FeeCalculator feeCalculator;
+    private final WithdrawalLimitChecker withdrawalLimitChecker;
+    private final TransferLimitChecker transferLimitChecker;
     private final TimeProvider timeProvider;
-
-    private static final BigDecimal DAILY_WITHDRAWAL_LIMIT = new BigDecimal("1000000"); // 일일 출금 한도: 100만원
-    private static final BigDecimal DAILY_TRANSFER_LIMIT = new BigDecimal("3000000");   // 일일 이체 한도: 300만원
 
     /**
      * 입금
@@ -43,7 +43,7 @@ public class TransactionService {
     public TransactionResponse deposit(DepositRequest request) {
         log.info("입금 시작: 계좌={}, 금액={}", request.getAccountNumber(), request.getAmount());
 
-        Account account = accountService.findAccountByAccountNumber(request.getAccountNumber());
+        Account account = accountReader.findByAccountNumber(request.getAccountNumber());
 
         account.deposit(request.getAmount());
 
@@ -67,9 +67,9 @@ public class TransactionService {
     public TransactionResponse withdraw(WithdrawRequest request) {
         log.info("출금 시작: 계좌={}, 금액={}", request.getAccountNumber(), request.getAmount());
 
-        Account account = accountService.findAccountByAccountNumberWithLock(request.getAccountNumber());
+        Account account = accountReader.findByAccountNumberWithLock(request.getAccountNumber());
 
-        checkDailyWithdrawalLimit(account.getId(), request.getAmount());
+        withdrawalLimitChecker.checkLimit(account.getId(), request.getAmount());
 
         account.withdraw(request.getAmount());
 
@@ -99,14 +99,14 @@ public class TransactionService {
             throw new BusinessException(ErrorCode.INVALID_AMOUNT, "동일한 계좌로 이체할 수 없습니다");
         }
 
-        Account fromAccount = accountService.findAccountByAccountNumberWithLock(request.getFromAccountNumber());
+        Account fromAccount = accountReader.findByAccountNumberWithLock(request.getFromAccountNumber());
 
-        BigDecimal fee = fromAccount.calculateTransferFee(request.getAmount());
+        BigDecimal fee = feeCalculator.calculate(request.getAmount());
         BigDecimal totalAmount = request.getAmount().add(fee);
 
-        Account toAccount = accountService.findAccountByAccountNumberWithLock(request.getToAccountNumber());
+        Account toAccount = accountReader.findByAccountNumberWithLock(request.getToAccountNumber());
 
-        checkDailyTransferLimit(fromAccount.getId(), request.getAmount());
+        transferLimitChecker.checkLimit(fromAccount.getId(), request.getAmount());
 
         if (!fromAccount.hasEnoughBalance(totalAmount)) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_BALANCE,
@@ -155,58 +155,12 @@ public class TransactionService {
     public Page<TransactionResponse> getTransactions(String accountNumber, Pageable pageable) {
         log.info("거래 내역 조회: 계좌={}", accountNumber);
 
-        Account account = accountService.findAccountByAccountNumber(accountNumber);
+        Account account = accountReader.findByAccountNumber(accountNumber);
 
         Page<Transaction> transactions = transactionRepository
                 .findByAccountIdOrderByCreatedAtDesc(account.getId(), pageable);
 
         return transactions.map(tx -> TransactionResponse.from(tx, accountNumber));
-    }
-
-    /**
-     * 일일 출금 한도 체크
-     */
-    private void checkDailyWithdrawalLimit(Long accountId, BigDecimal amount) {
-        LocalDateTime startOfDay = timeProvider.now().toLocalDate().atStartOfDay();
-        LocalDateTime endOfDay = timeProvider.now().toLocalDate().atTime(LocalTime.MAX);
-
-        BigDecimal todayWithdrawalAmount = transactionRepository.sumAmountByAccountIdAndTypeAndDateRange(
-                accountId,
-                TransactionType.WITHDRAWAL,
-                startOfDay,
-                endOfDay
-        );
-
-        BigDecimal totalAmount = todayWithdrawalAmount.add(amount);
-
-        if (totalAmount.compareTo(DAILY_WITHDRAWAL_LIMIT) > 0) {
-            throw new BusinessException(ErrorCode.DAILY_WITHDRAWAL_LIMIT_EXCEEDED,
-                    String.format("한도: %s원, 현재 사용: %s원, 요청: %s원",
-                            DAILY_WITHDRAWAL_LIMIT, todayWithdrawalAmount, amount));
-        }
-    }
-
-    /**
-     * 일일 이체 한도 체크
-     */
-    private void checkDailyTransferLimit(Long accountId, BigDecimal amount) {
-        LocalDateTime startOfDay = timeProvider.now().toLocalDate().atStartOfDay();
-        LocalDateTime endOfDay = timeProvider.now().toLocalDate().atTime(LocalTime.MAX);
-
-        BigDecimal todayTransferAmount = transactionRepository.sumAmountByAccountIdAndTypeAndDateRange(
-                accountId,
-                TransactionType.TRANSFER_OUT,
-                startOfDay,
-                endOfDay
-        );
-
-        BigDecimal totalAmount = todayTransferAmount.add(amount);
-
-        if (totalAmount.compareTo(DAILY_TRANSFER_LIMIT) > 0) {
-            throw new BusinessException(ErrorCode.DAILY_TRANSFER_LIMIT_EXCEEDED,
-                    String.format("한도: %s원, 현재 사용: %s원, 요청: %s원",
-                            DAILY_TRANSFER_LIMIT, todayTransferAmount, amount));
-        }
     }
 
     /**
