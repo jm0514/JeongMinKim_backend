@@ -1,4 +1,4 @@
-package com.jeongminkim.domain.port.in;
+package com.jeongminkim.application.port.in;
 
 /**
  * 계좌 삭제 Use Case (Inbound Port)

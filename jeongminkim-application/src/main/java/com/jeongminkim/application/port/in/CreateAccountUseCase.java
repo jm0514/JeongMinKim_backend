@@ -1,4 +1,4 @@
-package com.jeongminkim.domain.port.in;
+package com.jeongminkim.application.port.in;
 
 import com.jeongminkim.domain.model.Account;
 
