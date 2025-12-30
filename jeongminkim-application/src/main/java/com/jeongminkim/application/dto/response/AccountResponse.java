@@ -1,7 +1,7 @@
 package com.jeongminkim.application.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.jeongminkim.core.domain.entity.Account;
+import com.jeongminkim.domain.model.Account;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;

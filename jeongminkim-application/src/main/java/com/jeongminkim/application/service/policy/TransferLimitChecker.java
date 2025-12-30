@@ -1,16 +1,14 @@
 package com.jeongminkim.application.service.policy;
 
-import com.jeongminkim.application.common.time.TimeProvider;
-import com.jeongminkim.core.domain.enums.TransactionType;
-import com.jeongminkim.core.exception.BusinessException;
-import com.jeongminkim.core.exception.ErrorCode;
-import com.jeongminkim.core.repository.TransactionRepository;
+import com.jeongminkim.domain.exception.DomainException;
+import com.jeongminkim.domain.exception.ErrorType;
+import com.jeongminkim.domain.model.TransactionType;
+import com.jeongminkim.domain.port.out.TimePort;
+import com.jeongminkim.domain.port.out.TransactionPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 /**
  * 이체 한도 체커
@@ -20,27 +18,23 @@ import java.time.LocalTime;
 @RequiredArgsConstructor
 public class TransferLimitChecker implements LimitChecker {
 
-    private final TransactionRepository transactionRepository;
-    private final TimeProvider timeProvider;
+    private final TransactionPort transactionPort;
+    private final TimePort timePort;
 
     private static final BigDecimal DAILY_TRANSFER_LIMIT = new BigDecimal("3000000");
 
     @Override
     public void checkLimit(Long accountId, BigDecimal amount) {
-        LocalDateTime startOfDay = timeProvider.now().toLocalDate().atStartOfDay();
-        LocalDateTime endOfDay = timeProvider.now().toLocalDate().atTime(LocalTime.MAX);
-
-        BigDecimal todayTransferAmount = transactionRepository.sumAmountByAccountIdAndTypeAndDateRange(
+        BigDecimal todayTransferAmount = transactionPort.sumAmountByAccountIdAndTypeAndDate(
                 accountId,
                 TransactionType.TRANSFER_OUT,
-                startOfDay,
-                endOfDay
+                timePort.today()
         );
 
         BigDecimal totalAmount = todayTransferAmount.add(amount);
 
         if (totalAmount.compareTo(DAILY_TRANSFER_LIMIT) > 0) {
-            throw new BusinessException(ErrorCode.DAILY_TRANSFER_LIMIT_EXCEEDED,
+            throw new DomainException(ErrorType.DAILY_TRANSFER_LIMIT_EXCEEDED,
                     String.format("한도: %s원, 현재 사용: %s원, 요청: %s원",
                             DAILY_TRANSFER_LIMIT, todayTransferAmount, amount));
         }

@@ -2,10 +2,11 @@ package com.jeongminkim.api.exception;
 
 import com.jeongminkim.application.dto.CommonResponse;
 import com.jeongminkim.application.dto.CommonResponseFactory;
-import com.jeongminkim.core.exception.BusinessException;
-import com.jeongminkim.core.exception.ErrorCode;
+import com.jeongminkim.domain.exception.DomainException;
+import com.jeongminkim.domain.exception.ErrorType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -22,20 +23,22 @@ public class GlobalExceptionHandler {
     private final CommonResponseFactory commonResponseFactory;
 
     /**
-     * BusinessException 처리
+     * DomainException 처리
      */
-    @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<CommonResponse<Void>> handleBusinessException(BusinessException ex) {
-        log.error("BusinessException: {}", ex.getMessage());
+    @ExceptionHandler(DomainException.class)
+    public ResponseEntity<CommonResponse<Void>> handleDomainException(DomainException ex) {
+        log.error("DomainException: {}", ex.getMessage());
 
-        ErrorCode errorCode = ex.getErrorCode();
+        ErrorType errorType = ex.getErrorType();
+        HttpStatus status = mapErrorTypeToHttpStatus(errorType);
+
         CommonResponse<Void> response = commonResponseFactory.error(
-                errorCode.getCode(),
+                errorType.getCode(),
                 ex.getFullMessage()
         );
 
         return ResponseEntity
-                .status(errorCode.getStatus())
+                .status(status)
                 .body(response);
     }
 
@@ -52,14 +55,13 @@ public class GlobalExceptionHandler {
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
 
-        ErrorCode errorCode = ErrorCode.VALIDATION_ERROR;
         CommonResponse<Void> response = commonResponseFactory.error(
-                errorCode.getCode(),
+                ErrorType.VALIDATION_ERROR.getCode(),
                 validationMessages
         );
 
         return ResponseEntity
-                .status(errorCode.getStatus())
+                .status(HttpStatus.BAD_REQUEST)
                 .body(response);
     }
 
@@ -70,14 +72,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<CommonResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
         log.error("IllegalArgumentException: {}", ex.getMessage());
 
-        ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
         CommonResponse<Void> response = commonResponseFactory.error(
-                errorCode.getCode(),
+                ErrorType.INVALID_INPUT_VALUE.getCode(),
                 ex.getMessage()
         );
 
         return ResponseEntity
-                .status(errorCode.getStatus())
+                .status(HttpStatus.BAD_REQUEST)
                 .body(response);
     }
 
@@ -88,14 +89,30 @@ public class GlobalExceptionHandler {
     public ResponseEntity<CommonResponse<Void>> handleException(Exception ex) {
         log.error("Unexpected Exception: ", ex);
 
-        ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
         CommonResponse<Void> response = commonResponseFactory.error(
-                errorCode.getCode(),
-                errorCode.getMessage()
+                "SYS001",
+                "내부 서버 오류가 발생했습니다"
         );
 
         return ResponseEntity
-                .status(errorCode.getStatus())
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(response);
+    }
+
+    /**
+     * ErrorType을 HttpStatus로 매핑
+     */
+    private HttpStatus mapErrorTypeToHttpStatus(ErrorType errorType) {
+        return switch (errorType) {
+            case ACCOUNT_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case DUPLICATE_ACCOUNT -> HttpStatus.CONFLICT;
+            case INVALID_AMOUNT,
+                 INSUFFICIENT_BALANCE,
+                 INVALID_TRANSFER,
+                 DAILY_WITHDRAWAL_LIMIT_EXCEEDED,
+                 DAILY_TRANSFER_LIMIT_EXCEEDED,
+                 VALIDATION_ERROR,
+                 INVALID_INPUT_VALUE -> HttpStatus.BAD_REQUEST;
+        };
     }
 }

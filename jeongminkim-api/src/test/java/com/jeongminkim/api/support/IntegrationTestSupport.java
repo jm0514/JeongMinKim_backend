@@ -3,8 +3,8 @@ package com.jeongminkim.api.support;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jeongminkim.application.dto.request.CreateAccountRequest;
 import com.jeongminkim.application.dto.request.DepositRequest;
-import com.jeongminkim.core.repository.AccountRepository;
-import com.jeongminkim.core.repository.TransactionRepository;
+import com.jeongminkim.infrastructure.persistence.jpa.repository.AccountJpaRepository;
+import com.jeongminkim.infrastructure.persistence.jpa.repository.TransactionJpaRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -34,15 +34,15 @@ public abstract class IntegrationTestSupport {
     protected ObjectMapper objectMapper;
 
     @Autowired
-    private TransactionRepository transactionRepository;
+    private TransactionJpaRepository transactionJpaRepository;
 
     @Autowired
-    private AccountRepository accountRepository;
+    private AccountJpaRepository accountJpaRepository;
 
     @AfterEach
     void cleanup() {
-        transactionRepository.deleteAll();
-        accountRepository.deleteAll();
+        transactionJpaRepository.deleteAll();
+        accountJpaRepository.deleteAll();
     }
 
     /**

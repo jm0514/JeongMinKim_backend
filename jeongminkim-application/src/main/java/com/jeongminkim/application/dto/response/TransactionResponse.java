@@ -1,8 +1,8 @@
 package com.jeongminkim.application.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.jeongminkim.core.domain.entity.Transaction;
-import com.jeongminkim.core.domain.enums.TransactionType;
+import com.jeongminkim.domain.model.Transaction;
+import com.jeongminkim.domain.model.TransactionType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;

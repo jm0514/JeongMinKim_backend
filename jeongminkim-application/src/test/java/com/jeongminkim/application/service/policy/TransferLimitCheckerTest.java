@@ -1,10 +1,10 @@
 package com.jeongminkim.application.service.policy;
 
-import com.jeongminkim.application.common.time.TimeProvider;
-import com.jeongminkim.core.domain.enums.TransactionType;
-import com.jeongminkim.core.exception.BusinessException;
-import com.jeongminkim.core.exception.ErrorCode;
-import com.jeongminkim.core.repository.TransactionRepository;
+import com.jeongminkim.domain.exception.DomainException;
+import com.jeongminkim.domain.exception.ErrorType;
+import com.jeongminkim.domain.model.TransactionType;
+import com.jeongminkim.domain.port.out.TimePort;
+import com.jeongminkim.domain.port.out.TransactionPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,7 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -26,10 +26,10 @@ import static org.mockito.Mockito.when;
 class TransferLimitCheckerTest {
 
     @Mock
-    private TransactionRepository transactionRepository;
+    private TransactionPort transactionPort;
 
     @Mock
-    private TimeProvider timeProvider;
+    private TimePort timePort;
 
     @InjectMocks
     private TransferLimitChecker transferLimitChecker;
@@ -41,14 +41,13 @@ class TransferLimitCheckerTest {
         Long accountId = 1L;
         BigDecimal previousAmount = new BigDecimal("1500000");
         BigDecimal requestAmount = new BigDecimal("1000000");
-        LocalDateTime now = LocalDateTime.of(2024, 1, 15, 14, 30);
+        LocalDate today = LocalDate.of(2024, 1, 15);
 
-        when(timeProvider.now()).thenReturn(now);
-        when(transactionRepository.sumAmountByAccountIdAndTypeAndDateRange(
+        when(timePort.today()).thenReturn(today);
+        when(transactionPort.sumAmountByAccountIdAndTypeAndDate(
                 eq(accountId),
                 eq(TransactionType.TRANSFER_OUT),
-                any(LocalDateTime.class),
-                any(LocalDateTime.class)
+                any(LocalDate.class)
         )).thenReturn(previousAmount);
 
         // when & then
@@ -64,14 +63,13 @@ class TransferLimitCheckerTest {
         Long accountId = 1L;
         BigDecimal previousAmount = new BigDecimal("2000000");
         BigDecimal requestAmount = new BigDecimal("1000000");
-        LocalDateTime now = LocalDateTime.of(2024, 1, 15, 14, 30);
+        LocalDate today = LocalDate.of(2024, 1, 15);
 
-        when(timeProvider.now()).thenReturn(now);
-        when(transactionRepository.sumAmountByAccountIdAndTypeAndDateRange(
+        when(timePort.today()).thenReturn(today);
+        when(transactionPort.sumAmountByAccountIdAndTypeAndDate(
                 eq(accountId),
                 eq(TransactionType.TRANSFER_OUT),
-                any(LocalDateTime.class),
-                any(LocalDateTime.class)
+                any(LocalDate.class)
         )).thenReturn(previousAmount);
 
         // when & then
@@ -87,21 +85,20 @@ class TransferLimitCheckerTest {
         Long accountId = 1L;
         BigDecimal previousAmount = new BigDecimal("2000000");
         BigDecimal requestAmount = new BigDecimal("1500000");
-        LocalDateTime now = LocalDateTime.of(2024, 1, 15, 14, 30);
+        LocalDate today = LocalDate.of(2024, 1, 15);
 
-        when(timeProvider.now()).thenReturn(now);
-        when(transactionRepository.sumAmountByAccountIdAndTypeAndDateRange(
+        when(timePort.today()).thenReturn(today);
+        when(transactionPort.sumAmountByAccountIdAndTypeAndDate(
                 eq(accountId),
                 eq(TransactionType.TRANSFER_OUT),
-                any(LocalDateTime.class),
-                any(LocalDateTime.class)
+                any(LocalDate.class)
         )).thenReturn(previousAmount);
 
         // when & then
         // 2,000,000 + 1,500,000 = 3,500,000 > 3,000,000 (한도 초과)
         assertThatThrownBy(() -> transferLimitChecker.checkLimit(accountId, requestAmount))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DAILY_TRANSFER_LIMIT_EXCEEDED)
+                .isInstanceOf(DomainException.class)
+                .hasFieldOrPropertyWithValue("errorType", ErrorType.DAILY_TRANSFER_LIMIT_EXCEEDED)
                 .hasMessageContaining("한도: 3000000원")
                 .hasMessageContaining("현재 사용: 2000000원")
                 .hasMessageContaining("요청: 1500000원");
