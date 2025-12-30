@@ -241,4 +241,25 @@ class TransactionControllerTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.content[0].transactionType").value("TRANSFER_IN"));
     }
+
+    @Test
+    @DisplayName("Soft Delete: 삭제된 계좌로 거래 시도 실패 - 404 Not Found")
+    void transaction_fail_with_deleted_account() throws Exception {
+        // given - 계좌 생성 후 삭제
+        createTestAccount(TEST_ACCOUNT_1, TEST_OWNER_1);
+        mockMvc.perform(delete("/api/v1/accounts/" + TEST_ACCOUNT_1))
+                .andExpect(status().isNoContent());
+
+        // when & then - 삭제된 계좌로 입금 시도
+        DepositRequest depositRequest = DepositRequest.builder()
+                .accountNumber(TEST_ACCOUNT_1)
+                .amount(new BigDecimal("10000"))
+                .build();
+
+        mockMvc.perform(post("/api/v1/transactions/deposit")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(depositRequest)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false));
+    }
 }

@@ -73,4 +73,18 @@ class AccountControllerTest extends IntegrationTestSupport {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false));
     }
+
+    @Test
+    @DisplayName("Soft Delete: 삭제된 계좌 조회 실패 - 404 Not Found")
+    void getAccount_fail_after_deletion() throws Exception {
+        // given - 계좌 생성 후 삭제
+        createTestAccount(TEST_ACCOUNT_1, TEST_OWNER_1);
+        mockMvc.perform(delete("/api/v1/accounts/" + TEST_ACCOUNT_1))
+                .andExpect(status().isNoContent());
+
+        // when & then - 삭제된 계좌 조회 시도
+        mockMvc.perform(get("/api/v1/accounts/" + TEST_ACCOUNT_1))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false));
+    }
 }

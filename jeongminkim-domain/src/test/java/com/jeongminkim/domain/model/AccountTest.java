@@ -108,4 +108,18 @@ class AccountTest {
         assertThat(account.hasEnoughBalance(new BigDecimal("50000"))).isTrue();
         assertThat(account.hasEnoughBalance(new BigDecimal("60000"))).isFalse();
     }
+
+    @Test
+    @DisplayName("계좌 삭제 - Soft Delete")
+    void delete_account() {
+        // given
+        Account account = Account.create("1234567890", "홍길동", fixedTime);
+
+        // when
+        Account deletedAccount = account.delete(fixedTime.plusDays(1), fixedTime.plusDays(1));
+
+        // then
+        assertThat(deletedAccount.isDeleted()).isTrue();
+        assertThat(deletedAccount.getDeletedAt()).isNotNull();
+    }
 }
