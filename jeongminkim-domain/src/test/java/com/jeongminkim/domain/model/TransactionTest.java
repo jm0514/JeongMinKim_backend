@@ -4,11 +4,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("Transaction 도메인 모델 테스트")
 class TransactionTest {
+
+    private final LocalDateTime fixedTime = LocalDateTime.of(2025, 12, 30, 10, 0);
 
     @Test
     @DisplayName("입금 거래 생성 - 잔액 0원인 계좌에 10,000원 입금")
@@ -19,7 +22,7 @@ class TransactionTest {
         BigDecimal balanceAfter = new BigDecimal("10000");
 
         // when
-        Transaction transaction = Transaction.createDeposit(accountId, amount, balanceAfter);
+        Transaction transaction = Transaction.createDeposit(accountId, amount, balanceAfter, fixedTime);
 
         // then
         assertThat(transaction.getAccountId()).isEqualTo(accountId);
@@ -28,6 +31,7 @@ class TransactionTest {
         assertThat(transaction.getFee()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(transaction.getBalanceAfter()).isEqualByComparingTo(balanceAfter);
         assertThat(transaction.getRelatedAccountNumber()).isNull();
+        assertThat(transaction.getCreatedAt()).isEqualTo(fixedTime);
     }
 
     @Test
@@ -39,7 +43,7 @@ class TransactionTest {
         BigDecimal balanceAfter = new BigDecimal("5000");
 
         // when
-        Transaction transaction = Transaction.createWithdrawal(accountId, amount, balanceAfter);
+        Transaction transaction = Transaction.createWithdrawal(accountId, amount, balanceAfter, fixedTime);
 
         // then
         assertThat(transaction.getAccountId()).isEqualTo(accountId);
@@ -48,6 +52,7 @@ class TransactionTest {
         assertThat(transaction.getFee()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(transaction.getBalanceAfter()).isEqualByComparingTo(balanceAfter);
         assertThat(transaction.getRelatedAccountNumber()).isNull();
+        assertThat(transaction.getCreatedAt()).isEqualTo(fixedTime);
     }
 
     @Test
@@ -62,7 +67,7 @@ class TransactionTest {
 
         // when
         Transaction transaction = Transaction.createTransferOut(
-                accountId, amount, fee, balanceAfter, toAccountNumber
+                accountId, amount, fee, balanceAfter, toAccountNumber, fixedTime
         );
 
         // then
@@ -72,6 +77,7 @@ class TransactionTest {
         assertThat(transaction.getFee()).isEqualByComparingTo(fee);
         assertThat(transaction.getBalanceAfter()).isEqualByComparingTo(balanceAfter);
         assertThat(transaction.getRelatedAccountNumber()).isEqualTo(toAccountNumber);
+        assertThat(transaction.getCreatedAt()).isEqualTo(fixedTime);
     }
 
     @Test
@@ -85,7 +91,7 @@ class TransactionTest {
 
         // when
         Transaction transaction = Transaction.createTransferIn(
-                accountId, amount, balanceAfter, fromAccountNumber
+                accountId, amount, balanceAfter, fromAccountNumber, fixedTime
         );
 
         // then
@@ -95,5 +101,6 @@ class TransactionTest {
         assertThat(transaction.getFee()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(transaction.getBalanceAfter()).isEqualByComparingTo(balanceAfter);
         assertThat(transaction.getRelatedAccountNumber()).isEqualTo(fromAccountNumber);
+        assertThat(transaction.getCreatedAt()).isEqualTo(fixedTime);
     }
 }

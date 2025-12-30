@@ -37,9 +37,11 @@ class AccountUseCaseTest {
     @DisplayName("계좌 생성 성공")
     void createAccount_success() {
         // given
-        Account account = Account.create("1234567890", "홍길동");
+        LocalDateTime now = LocalDateTime.of(2025, 1, 1, 10, 0);
+        Account account = Account.create("1234567890", "홍길동", now);
 
         when(accountPort.existsByAccountNumber("1234567890")).thenReturn(false);
+        when(timePort.now()).thenReturn(now);
         when(accountPort.save(any(Account.class))).thenReturn(account);
 
         // when
@@ -72,7 +74,8 @@ class AccountUseCaseTest {
     @DisplayName("계좌 조회 성공")
     void getAccount_success() {
         // given
-        Account account = Account.create("1234567890", "홍길동");
+        LocalDateTime now = LocalDateTime.of(2025, 1, 1, 10, 0);
+        Account account = Account.create("1234567890", "홍길동", now);
 
         when(accountPort.findByAccountNumber("1234567890")).thenReturn(Optional.of(account));
 
@@ -103,8 +106,8 @@ class AccountUseCaseTest {
     @DisplayName("계좌 삭제 성공")
     void deleteAccount_success() {
         // given
-        Account account = Account.create("1234567890", "홍길동");
         LocalDateTime now = LocalDateTime.of(2025, 1, 1, 10, 0);
+        Account account = Account.create("1234567890", "홍길동", now);
 
         when(accountPort.findByAccountNumber("1234567890")).thenReturn(Optional.of(account));
         when(timePort.now()).thenReturn(now);
@@ -115,7 +118,7 @@ class AccountUseCaseTest {
 
         // then
         verify(accountPort).findByAccountNumber("1234567890");
-        verify(timePort).now();
+        verify(timePort, times(2)).now();  // deletedAt과 updatedAt 모두 now() 호출
         verify(accountPort).save(any(Account.class));
     }
 

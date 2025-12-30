@@ -9,6 +9,7 @@ import com.jeongminkim.domain.model.Account;
 import com.jeongminkim.domain.model.Transaction;
 import com.jeongminkim.domain.port.in.TransferUseCase;
 import com.jeongminkim.domain.port.out.AccountPort;
+import com.jeongminkim.domain.port.out.TimePort;
 import com.jeongminkim.domain.port.out.TransactionPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,17 +47,23 @@ class TransactionUseCaseTest {
     @Mock
     private FeeCalculator feeCalculator;
 
+    @Mock
+    private TimePort timePort;
+
     @InjectMocks
     private TransactionUseCase transactionUseCase;
+
+    private final LocalDateTime fixedTime = LocalDateTime.of(2025, 1, 1, 10, 0);
 
     @Test
     @DisplayName("입금 성공")
     void deposit_success() {
         // given
-        Account account = Account.create("1234567890", "홍길동");
-        Account updatedAccount = account.deposit(new BigDecimal("10000"));
+        Account account = Account.create("1234567890", "홍길동", fixedTime);
+        Account updatedAccount = account.deposit(new BigDecimal("10000"), fixedTime);
 
         when(accountPort.findByAccountNumber("1234567890")).thenReturn(Optional.of(account));
+        when(timePort.now()).thenReturn(fixedTime);
         when(accountPort.save(any(Account.class))).thenReturn(updatedAccount);
         when(transactionPort.save(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -86,12 +94,13 @@ class TransactionUseCaseTest {
     @DisplayName("출금 성공")
     void withdraw_success() {
         // given
-        Account account = Account.create("1234567890", "홍길동")
+        Account account = Account.create("1234567890", "홍길동", fixedTime)
                 .withId(1L)
-                .deposit(new BigDecimal("50000"));
-        Account updatedAccount = account.withdraw(new BigDecimal("30000"));
+                .deposit(new BigDecimal("50000"), fixedTime);
+        Account updatedAccount = account.withdraw(new BigDecimal("30000"), fixedTime);
 
         when(accountPort.findByAccountNumberWithLock("1234567890")).thenReturn(Optional.of(account));
+        when(timePort.now()).thenReturn(fixedTime);
         when(accountPort.save(any(Account.class))).thenReturn(updatedAccount);
         when(transactionPort.save(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -128,9 +137,9 @@ class TransactionUseCaseTest {
     @DisplayName("출금 실패 - 잔액 부족")
     void withdraw_fail_insufficient_balance() {
         // given
-        Account account = Account.create("1234567890", "홍길동")
+        Account account = Account.create("1234567890", "홍길동", fixedTime)
                 .withId(1L)
-                .deposit(new BigDecimal("10000"));
+                .deposit(new BigDecimal("10000"), fixedTime);
 
         when(accountPort.findByAccountNumberWithLock("1234567890")).thenReturn(Optional.of(account));
         doNothing().when(withdrawalLimitChecker).checkLimit(any(), any());
@@ -149,9 +158,9 @@ class TransactionUseCaseTest {
     @DisplayName("출금 실패 - 일일 한도 초과")
     void withdraw_fail_dailyLimitExceeded() {
         // given
-        Account account = Account.create("1234567890", "홍길동")
+        Account account = Account.create("1234567890", "홍길동", fixedTime)
                 .withId(1L)
-                .deposit(new BigDecimal("500000"));
+                .deposit(new BigDecimal("500000"), fixedTime);
 
         when(accountPort.findByAccountNumberWithLock("1234567890")).thenReturn(Optional.of(account));
         doThrow(new DomainException(ErrorType.DAILY_WITHDRAWAL_LIMIT_EXCEEDED))
@@ -171,12 +180,13 @@ class TransactionUseCaseTest {
     @DisplayName("출금 성공 - 일일 한도 경계값")
     void withdraw_success_dailyLimitBoundary() {
         // given
-        Account account = Account.create("1234567890", "홍길동")
+        Account account = Account.create("1234567890", "홍길동", fixedTime)
                 .withId(1L)
-                .deposit(new BigDecimal("2000000"));
-        Account updatedAccount = account.withdraw(new BigDecimal("1000000"));
+                .deposit(new BigDecimal("2000000"), fixedTime);
+        Account updatedAccount = account.withdraw(new BigDecimal("1000000"), fixedTime);
 
         when(accountPort.findByAccountNumberWithLock("1234567890")).thenReturn(Optional.of(account));
+        when(timePort.now()).thenReturn(fixedTime);
         when(accountPort.save(any(Account.class))).thenReturn(updatedAccount);
         when(transactionPort.save(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -197,10 +207,10 @@ class TransactionUseCaseTest {
     @DisplayName("이체 성공")
     void transfer_success() {
         // given
-        Account fromAccount = Account.create("1234567890", "홍길동")
+        Account fromAccount = Account.create("1234567890", "홍길동", fixedTime)
                 .withId(1L)
-                .deposit(new BigDecimal("50000"));
-        Account toAccount = Account.create("0987654321", "김철수")
+                .deposit(new BigDecimal("50000"), fixedTime);
+        Account toAccount = Account.create("0987654321", "김철수", fixedTime)
                 .withId(2L);
 
         BigDecimal amount = new BigDecimal("10000");
@@ -209,6 +219,7 @@ class TransactionUseCaseTest {
         when(accountPort.findByAccountNumberWithLock("1234567890")).thenReturn(Optional.of(fromAccount));
         when(accountPort.findByAccountNumberWithLock("0987654321")).thenReturn(Optional.of(toAccount));
         when(feeCalculator.calculate(any())).thenReturn(fee);
+        when(timePort.now()).thenReturn(fixedTime);
         doNothing().when(transferLimitChecker).checkLimit(any(), any());
         when(accountPort.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(transactionPort.save(any(Transaction.class)))
@@ -249,10 +260,10 @@ class TransactionUseCaseTest {
     @DisplayName("이체 실패 - 잔액 부족 (수수료 포함)")
     void transfer_fail_insufficientBalance() {
         // given
-        Account fromAccount = Account.create("1234567890", "홍길동")
+        Account fromAccount = Account.create("1234567890", "홍길동", fixedTime)
                 .withId(1L)
-                .deposit(new BigDecimal("10000"));
-        Account toAccount = Account.create("0987654321", "김철수")
+                .deposit(new BigDecimal("10000"), fixedTime);
+        Account toAccount = Account.create("0987654321", "김철수", fixedTime)
                 .withId(2L);
 
         BigDecimal amount = new BigDecimal("10000");
@@ -280,10 +291,10 @@ class TransactionUseCaseTest {
     @DisplayName("이체 실패 - 일일 이체 한도 초과")
     void transfer_fail_dailyLimitExceeded() {
         // given
-        Account fromAccount = Account.create("1234567890", "홍길동")
+        Account fromAccount = Account.create("1234567890", "홍길동", fixedTime)
                 .withId(1L)
-                .deposit(new BigDecimal("1000000"));
-        Account toAccount = Account.create("0987654321", "김철수")
+                .deposit(new BigDecimal("1000000"), fixedTime);
+        Account toAccount = Account.create("0987654321", "김철수", fixedTime)
                 .withId(2L);
 
         BigDecimal amount = new BigDecimal("600000");
@@ -310,10 +321,10 @@ class TransactionUseCaseTest {
     void getTransactions_success() {
         // given
         String accountNumber = "1234567890";
-        Account account = Account.create(accountNumber, "홍길동").withId(1L);
+        Account account = Account.create(accountNumber, "홍길동", fixedTime).withId(1L);
 
-        Transaction tx1 = Transaction.createDeposit(1L, new BigDecimal("10000"), new BigDecimal("10000"));
-        Transaction tx2 = Transaction.createWithdrawal(1L, new BigDecimal("5000"), new BigDecimal("5000"));
+        Transaction tx1 = Transaction.createDeposit(1L, new BigDecimal("10000"), new BigDecimal("10000"), fixedTime);
+        Transaction tx2 = Transaction.createWithdrawal(1L, new BigDecimal("5000"), new BigDecimal("5000"), fixedTime);
 
         when(accountPort.findByAccountNumber(accountNumber)).thenReturn(Optional.of(account));
         when(transactionPort.findAllByAccountId(eq(1L), eq(0), eq(20)))

@@ -12,6 +12,7 @@ import com.jeongminkim.domain.port.in.GetTransactionHistoryUseCase;
 import com.jeongminkim.domain.port.in.TransferUseCase;
 import com.jeongminkim.domain.port.in.WithdrawUseCase;
 import com.jeongminkim.domain.port.out.AccountPort;
+import com.jeongminkim.domain.port.out.TimePort;
 import com.jeongminkim.domain.port.out.TransactionPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,7 @@ public class TransactionUseCase implements
 
     private final AccountPort accountPort;
     private final TransactionPort transactionPort;
+    private final TimePort timePort;
     private final WithdrawalLimitChecker withdrawalLimitChecker;
     private final TransferLimitChecker transferLimitChecker;
     private final FeeCalculator feeCalculator;
@@ -47,7 +49,7 @@ public class TransactionUseCase implements
         Account account = findAccountByNumber(accountNumber);
 
         // 입금
-        Account updatedAccount = account.deposit(amount);
+        Account updatedAccount = account.deposit(amount, timePort.now());
 
         // 계좌 업데이트
         accountPort.save(updatedAccount);
@@ -56,7 +58,8 @@ public class TransactionUseCase implements
         Transaction transaction = Transaction.createDeposit(
                 updatedAccount.getId(),
                 amount,
-                updatedAccount.getBalance()
+                updatedAccount.getBalance(),
+                timePort.now()
         );
 
         return transactionPort.save(transaction);
@@ -75,7 +78,7 @@ public class TransactionUseCase implements
         withdrawalLimitChecker.checkLimit(account.getId(), amount);
 
         // 출금
-        Account updatedAccount = account.withdraw(amount);
+        Account updatedAccount = account.withdraw(amount, timePort.now());
 
         // 계좌 업데이트
         accountPort.save(updatedAccount);
@@ -84,7 +87,8 @@ public class TransactionUseCase implements
         Transaction transaction = Transaction.createWithdrawal(
                 updatedAccount.getId(),
                 amount,
-                updatedAccount.getBalance()
+                updatedAccount.getBalance(),
+                timePort.now()
         );
 
         return transactionPort.save(transaction);
@@ -125,10 +129,10 @@ public class TransactionUseCase implements
         }
 
         // 출금 (금액 + 수수료)
-        Account updatedFromAccount = fromAccount.withdraw(totalAmount);
+        Account updatedFromAccount = fromAccount.withdraw(totalAmount, timePort.now());
 
         // 입금 (금액만)
-        Account updatedToAccount = toAccount.deposit(amount);
+        Account updatedToAccount = toAccount.deposit(amount, timePort.now());
 
         // 계좌 업데이트
         accountPort.save(updatedFromAccount);
@@ -140,7 +144,8 @@ public class TransactionUseCase implements
                 amount,
                 fee,
                 updatedFromAccount.getBalance(),
-                toAccountNumber
+                toAccountNumber,
+                timePort.now()
         );
 
         // 입금 거래 내역
@@ -148,7 +153,8 @@ public class TransactionUseCase implements
                 updatedToAccount.getId(),
                 amount,
                 updatedToAccount.getBalance(),
-                fromAccountNumber
+                fromAccountNumber,
+                timePort.now()
         );
 
         Transaction savedFromTx = transactionPort.save(fromTransaction);

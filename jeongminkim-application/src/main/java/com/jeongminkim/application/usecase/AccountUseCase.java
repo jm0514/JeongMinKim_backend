@@ -32,7 +32,7 @@ public class AccountUseCase implements CreateAccountUseCase, DeleteAccountUseCas
         }
 
         // 계좌 생성
-        Account account = Account.create(accountNumber, ownerName);
+        Account account = Account.create(accountNumber, ownerName, timePort.now());
 
         // 저장
         return accountPort.save(account);
@@ -46,7 +46,7 @@ public class AccountUseCase implements CreateAccountUseCase, DeleteAccountUseCas
                 .orElseThrow(() -> new DomainException(ErrorType.ACCOUNT_NOT_FOUND, accountNumber));
 
         // Soft Delete
-        Account deletedAccount = account.delete(timePort.now());
+        Account deletedAccount = account.delete(timePort.now(), timePort.now());
 
         // 저장
         accountPort.save(deletedAccount);

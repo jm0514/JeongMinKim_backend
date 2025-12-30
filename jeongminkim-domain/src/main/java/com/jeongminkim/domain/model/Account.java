@@ -27,19 +27,19 @@ public class Account {
     /**
      * 계좌 생성 팩토리 메서드
      */
-    public static Account create(String accountNumber, String ownerName) {
+    public static Account create(String accountNumber, String ownerName, LocalDateTime now) {
         return Account.builder()
                 .accountNumber(accountNumber)
                 .ownerName(ownerName)
                 .balance(BigDecimal.ZERO)
-                .createdAt(LocalDateTime.now())
+                .createdAt(now)
                 .build();
     }
 
     /**
      * 입금
      */
-    public Account deposit(BigDecimal amount) {
+    public Account deposit(BigDecimal amount, LocalDateTime now) {
         validateAmount(amount);
         return Account.builder()
                 .id(this.id)
@@ -47,7 +47,7 @@ public class Account {
                 .ownerName(this.ownerName)
                 .balance(this.balance.add(amount))
                 .createdAt(this.createdAt)
-                .updatedAt(LocalDateTime.now())
+                .updatedAt(now)
                 .deletedAt(this.deletedAt)
                 .build();
     }
@@ -55,7 +55,7 @@ public class Account {
     /**
      * 출금
      */
-    public Account withdraw(BigDecimal amount) {
+    public Account withdraw(BigDecimal amount, LocalDateTime now) {
         validateAmount(amount);
         if (!hasEnoughBalance(amount)) {
             throw new IllegalArgumentException(
@@ -69,7 +69,7 @@ public class Account {
                 .ownerName(this.ownerName)
                 .balance(this.balance.subtract(amount))
                 .createdAt(this.createdAt)
-                .updatedAt(LocalDateTime.now())
+                .updatedAt(now)
                 .deletedAt(this.deletedAt)
                 .build();
     }
@@ -93,14 +93,14 @@ public class Account {
     /**
      * 계좌 삭제 (Soft Delete)
      */
-    public Account delete(LocalDateTime deletedAt) {
+    public Account delete(LocalDateTime deletedAt, LocalDateTime updatedAt) {
         return Account.builder()
                 .id(this.id)
                 .accountNumber(this.accountNumber)
                 .ownerName(this.ownerName)
                 .balance(this.balance)
                 .createdAt(this.createdAt)
-                .updatedAt(LocalDateTime.now())
+                .updatedAt(updatedAt)
                 .deletedAt(deletedAt)
                 .build();
     }

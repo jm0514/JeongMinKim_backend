@@ -34,7 +34,8 @@ public class Transaction {
             BigDecimal amount,
             BigDecimal fee,
             BigDecimal balanceAfter,
-            String relatedAccountNumber
+            String relatedAccountNumber,
+            LocalDateTime createdAt
     ) {
         return Transaction.builder()
                 .accountId(accountId)
@@ -43,22 +44,22 @@ public class Transaction {
                 .fee(fee)
                 .balanceAfter(balanceAfter)
                 .relatedAccountNumber(relatedAccountNumber)
-                .createdAt(LocalDateTime.now())
+                .createdAt(createdAt)
                 .build();
     }
 
     /**
      * 입금 거래 생성
      */
-    public static Transaction createDeposit(Long accountId, BigDecimal amount, BigDecimal balanceAfter) {
-        return create(accountId, TransactionType.DEPOSIT, amount, BigDecimal.ZERO, balanceAfter, null);
+    public static Transaction createDeposit(Long accountId, BigDecimal amount, BigDecimal balanceAfter, LocalDateTime createdAt) {
+        return create(accountId, TransactionType.DEPOSIT, amount, BigDecimal.ZERO, balanceAfter, null, createdAt);
     }
 
     /**
      * 출금 거래 생성
      */
-    public static Transaction createWithdrawal(Long accountId, BigDecimal amount, BigDecimal balanceAfter) {
-        return create(accountId, TransactionType.WITHDRAWAL, amount, BigDecimal.ZERO, balanceAfter, null);
+    public static Transaction createWithdrawal(Long accountId, BigDecimal amount, BigDecimal balanceAfter, LocalDateTime createdAt) {
+        return create(accountId, TransactionType.WITHDRAWAL, amount, BigDecimal.ZERO, balanceAfter, null, createdAt);
     }
 
     /**
@@ -69,9 +70,10 @@ public class Transaction {
             BigDecimal amount,
             BigDecimal fee,
             BigDecimal balanceAfter,
-            String toAccountNumber
+            String toAccountNumber,
+            LocalDateTime createdAt
     ) {
-        return create(accountId, TransactionType.TRANSFER_OUT, amount, fee, balanceAfter, toAccountNumber);
+        return create(accountId, TransactionType.TRANSFER_OUT, amount, fee, balanceAfter, toAccountNumber, createdAt);
     }
 
     /**
@@ -81,9 +83,10 @@ public class Transaction {
             Long accountId,
             BigDecimal amount,
             BigDecimal balanceAfter,
-            String fromAccountNumber
+            String fromAccountNumber,
+            LocalDateTime createdAt
     ) {
-        return create(accountId, TransactionType.TRANSFER_IN, amount, BigDecimal.ZERO, balanceAfter, fromAccountNumber);
+        return create(accountId, TransactionType.TRANSFER_IN, amount, BigDecimal.ZERO, balanceAfter, fromAccountNumber, createdAt);
     }
 
     /**
