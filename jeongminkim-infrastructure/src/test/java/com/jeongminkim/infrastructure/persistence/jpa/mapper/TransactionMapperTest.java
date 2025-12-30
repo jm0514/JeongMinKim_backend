@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TransactionMapperTest {
 
     private TransactionMapper transactionMapper;
-    private final LocalDateTime fixedTime = LocalDateTime.of(2024, 1, 15, 10, 30);
+    private final LocalDateTime fixedTime = LocalDateTime.of(2025, 12, 30, 10, 0);
 
     @BeforeEach
     void setUp() {
@@ -55,7 +55,7 @@ class TransactionMapperTest {
     @DisplayName("Entity → Domain 변환 성공")
     void toDomain_success() {
         // given - 가장 복잡한 케이스 (이체 출금: 수수료 + relatedAccountNumber 포함)
-        LocalDateTime now = LocalDateTime.of(2024, 1, 15, 10, 30);
+        LocalDateTime now = LocalDateTime.of(2025, 12, 30, 10, 0);
         TransactionEntity entity = TransactionEntity.builder()
                 .id(1L)
                 .accountId(1L)

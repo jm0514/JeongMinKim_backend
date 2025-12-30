@@ -53,7 +53,7 @@ class TransactionUseCaseTest {
     @InjectMocks
     private TransactionUseCase transactionUseCase;
 
-    private final LocalDateTime fixedTime = LocalDateTime.of(2025, 1, 1, 10, 0);
+    private final LocalDateTime fixedTime = LocalDateTime.of(2025, 12, 30, 10, 0);
 
     @Test
     @DisplayName("입금 성공")

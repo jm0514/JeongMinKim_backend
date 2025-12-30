@@ -28,7 +28,6 @@ public class WithdrawalLimitChecker implements LimitChecker {
         BigDecimal todayWithdrawalAmount = transactionPort.sumAmountByAccountIdAndTypeAndDate(
                 accountId,
                 TransactionType.WITHDRAWAL,
-                // TODO: 로직이 틀린 것 같음
                 timePort.today()
         );
 

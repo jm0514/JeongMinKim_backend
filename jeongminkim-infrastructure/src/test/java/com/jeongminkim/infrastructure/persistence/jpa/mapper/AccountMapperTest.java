@@ -25,8 +25,8 @@ class AccountMapperTest {
     @DisplayName("Domain → Entity 변환 성공")
     void toEntity_success() {
         // given
-        LocalDateTime now = LocalDateTime.of(2024, 1, 15, 10, 30);
-        LocalDateTime deletedAt = LocalDateTime.of(2024, 1, 16, 15, 0);
+        LocalDateTime now = LocalDateTime.of(2025, 12, 30, 10, 0);
+        LocalDateTime deletedAt = LocalDateTime.of(2025, 12, 30, 15, 0);
         Account account = Account.builder()
                 .id(1L)
                 .accountNumber("1234567890")
@@ -55,8 +55,8 @@ class AccountMapperTest {
     @DisplayName("Entity → Domain 변환 성공")
     void toDomain_success() {
         // given
-        LocalDateTime now = LocalDateTime.of(2024, 1, 15, 10, 30);
-        LocalDateTime deletedAt = LocalDateTime.of(2024, 1, 16, 15, 0);
+        LocalDateTime now = LocalDateTime.of(2025, 12, 30, 10, 0);
+        LocalDateTime deletedAt = LocalDateTime.of(2025, 12, 30, 15, 0);
         AccountEntity entity = AccountEntity.builder()
                 .id(1L)
                 .accountNumber("1234567890")
