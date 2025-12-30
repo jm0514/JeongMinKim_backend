@@ -3,12 +3,12 @@ package com.jeongminkim.application.service.policy;
 import com.jeongminkim.domain.exception.DomainException;
 import com.jeongminkim.domain.exception.ErrorType;
 import com.jeongminkim.domain.model.TransactionType;
-import com.jeongminkim.domain.port.out.TimePort;
 import com.jeongminkim.domain.port.out.TransactionPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /**
  * 이체 한도 체커
@@ -19,16 +19,15 @@ import java.math.BigDecimal;
 public class TransferLimitChecker implements LimitChecker {
 
     private final TransactionPort transactionPort;
-    private final TimePort timePort;
 
     private static final BigDecimal DAILY_TRANSFER_LIMIT = new BigDecimal("3000000");
 
     @Override
-    public void checkLimit(Long accountId, BigDecimal amount) {
+    public void checkLimit(Long accountId, BigDecimal amount, LocalDate transactionDate) {
         BigDecimal todayTransferAmount = transactionPort.sumAmountByAccountIdAndTypeAndDate(
                 accountId,
                 TransactionType.TRANSFER_OUT,
-                timePort.today()
+                transactionDate
         );
 
         BigDecimal totalAmount = todayTransferAmount.add(amount);

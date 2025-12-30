@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -62,7 +63,7 @@ class TransactionUseCaseTest {
         Account account = Account.create("1234567890", "홍길동", fixedTime);
         Account updatedAccount = account.deposit(new BigDecimal("10000"), fixedTime);
 
-        when(accountPort.findByAccountNumber("1234567890")).thenReturn(Optional.of(account));
+        when(accountPort.findByAccountNumberWithLock("1234567890")).thenReturn(Optional.of(account));
         when(timePort.now()).thenReturn(fixedTime);
         when(accountPort.save(any(Account.class))).thenReturn(updatedAccount);
         when(transactionPort.save(any(Transaction.class)))
@@ -74,7 +75,7 @@ class TransactionUseCaseTest {
         // then
         assertThat(result.getAmount()).isEqualByComparingTo(new BigDecimal("10000"));
 
-        verify(accountPort).findByAccountNumber("1234567890");
+        verify(accountPort).findByAccountNumberWithLock("1234567890");
         verify(accountPort).save(any(Account.class));
         verify(transactionPort).save(any(Transaction.class));
     }
@@ -87,7 +88,7 @@ class TransactionUseCaseTest {
                 .isInstanceOf(DomainException.class)
                 .hasFieldOrPropertyWithValue("errorType", ErrorType.INVALID_AMOUNT);
 
-        verify(accountPort, never()).findByAccountNumber(any());
+        verify(accountPort, never()).findByAccountNumberWithLock(any());
     }
 
     @Test
@@ -100,11 +101,12 @@ class TransactionUseCaseTest {
         Account updatedAccount = account.withdraw(new BigDecimal("30000"), fixedTime);
 
         when(accountPort.findByAccountNumberWithLock("1234567890")).thenReturn(Optional.of(account));
+        when(timePort.today()).thenReturn(fixedTime.toLocalDate());
         when(timePort.now()).thenReturn(fixedTime);
         when(accountPort.save(any(Account.class))).thenReturn(updatedAccount);
         when(transactionPort.save(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        doNothing().when(withdrawalLimitChecker).checkLimit(any(), any());
+        doNothing().when(withdrawalLimitChecker).checkLimit(any(), any(), any());
 
         // when
         Transaction result = transactionUseCase.withdraw("1234567890", new BigDecimal("30000"));
@@ -113,7 +115,7 @@ class TransactionUseCaseTest {
         assertThat(result.getAmount()).isEqualByComparingTo(new BigDecimal("30000"));
 
         verify(accountPort).findByAccountNumberWithLock("1234567890");
-        verify(withdrawalLimitChecker).checkLimit(any(), any());
+        verify(withdrawalLimitChecker).checkLimit(any(), any(), any());
         verify(accountPort).save(any(Account.class));
         verify(transactionPort).save(any(Transaction.class));
     }
@@ -122,14 +124,14 @@ class TransactionUseCaseTest {
     @DisplayName("입금 실패 - 존재하지 않는 계좌")
     void deposit_fail_accountNotFound() {
         // given
-        when(accountPort.findByAccountNumber("1234567890")).thenReturn(Optional.empty());
+        when(accountPort.findByAccountNumberWithLock("1234567890")).thenReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> transactionUseCase.deposit("1234567890", new BigDecimal("10000")))
                 .isInstanceOf(DomainException.class)
                 .hasFieldOrPropertyWithValue("errorType", ErrorType.ACCOUNT_NOT_FOUND);
 
-        verify(accountPort).findByAccountNumber("1234567890");
+        verify(accountPort).findByAccountNumberWithLock("1234567890");
         verify(transactionPort, never()).save(any());
     }
 
@@ -142,7 +144,9 @@ class TransactionUseCaseTest {
                 .deposit(new BigDecimal("10000"), fixedTime);
 
         when(accountPort.findByAccountNumberWithLock("1234567890")).thenReturn(Optional.of(account));
-        doNothing().when(withdrawalLimitChecker).checkLimit(any(), any());
+        when(timePort.today()).thenReturn(fixedTime.toLocalDate());
+        when(timePort.now()).thenReturn(fixedTime);
+        doNothing().when(withdrawalLimitChecker).checkLimit(any(), any(), any());
 
         // when & then
         assertThatThrownBy(() -> transactionUseCase.withdraw("1234567890", new BigDecimal("20000")))
@@ -150,7 +154,7 @@ class TransactionUseCaseTest {
                 .hasMessageContaining("잔액이 부족합니다");
 
         verify(accountPort).findByAccountNumberWithLock("1234567890");
-        verify(withdrawalLimitChecker).checkLimit(any(), any());
+        verify(withdrawalLimitChecker).checkLimit(any(), any(), any());
         verify(accountPort, never()).save(any());
     }
 
@@ -163,8 +167,10 @@ class TransactionUseCaseTest {
                 .deposit(new BigDecimal("500000"), fixedTime);
 
         when(accountPort.findByAccountNumberWithLock("1234567890")).thenReturn(Optional.of(account));
+        when(timePort.today()).thenReturn(fixedTime.toLocalDate());
+        when(timePort.now()).thenReturn(fixedTime);
         doThrow(new DomainException(ErrorType.DAILY_WITHDRAWAL_LIMIT_EXCEEDED))
-                .when(withdrawalLimitChecker).checkLimit(any(), any());
+                .when(withdrawalLimitChecker).checkLimit(any(), any(), any());
 
         // when & then
         assertThatThrownBy(() -> transactionUseCase.withdraw("1234567890", new BigDecimal("200000")))
@@ -172,7 +178,7 @@ class TransactionUseCaseTest {
                 .hasFieldOrPropertyWithValue("errorType", ErrorType.DAILY_WITHDRAWAL_LIMIT_EXCEEDED);
 
         verify(accountPort).findByAccountNumberWithLock("1234567890");
-        verify(withdrawalLimitChecker).checkLimit(any(), any());
+        verify(withdrawalLimitChecker).checkLimit(any(), any(), any());
         verify(transactionPort, never()).save(any());
     }
 
@@ -186,11 +192,12 @@ class TransactionUseCaseTest {
         Account updatedAccount = account.withdraw(new BigDecimal("1000000"), fixedTime);
 
         when(accountPort.findByAccountNumberWithLock("1234567890")).thenReturn(Optional.of(account));
+        when(timePort.today()).thenReturn(fixedTime.toLocalDate());
         when(timePort.now()).thenReturn(fixedTime);
         when(accountPort.save(any(Account.class))).thenReturn(updatedAccount);
         when(transactionPort.save(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        doNothing().when(withdrawalLimitChecker).checkLimit(any(), any());
+        doNothing().when(withdrawalLimitChecker).checkLimit(any(), any(), any());
 
         // when
         Transaction result = transactionUseCase.withdraw("1234567890", new BigDecimal("1000000"));
@@ -199,7 +206,7 @@ class TransactionUseCaseTest {
         assertThat(result.getAmount()).isEqualByComparingTo(new BigDecimal("1000000"));
 
         verify(accountPort).findByAccountNumberWithLock("1234567890");
-        verify(withdrawalLimitChecker).checkLimit(any(), any());
+        verify(withdrawalLimitChecker).checkLimit(any(), any(), any());
         verify(transactionPort).save(any(Transaction.class));
     }
 
@@ -219,8 +226,9 @@ class TransactionUseCaseTest {
         when(accountPort.findByAccountNumberWithLock("1234567890")).thenReturn(Optional.of(fromAccount));
         when(accountPort.findByAccountNumberWithLock("0987654321")).thenReturn(Optional.of(toAccount));
         when(feeCalculator.calculate(any())).thenReturn(fee);
+        when(timePort.today()).thenReturn(fixedTime.toLocalDate());
         when(timePort.now()).thenReturn(fixedTime);
-        doNothing().when(transferLimitChecker).checkLimit(any(), any());
+        doNothing().when(transferLimitChecker).checkLimit(any(), any(), any());
         when(accountPort.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(transactionPort.save(any(Transaction.class)))
                 .thenAnswer(invocation -> {
@@ -240,7 +248,7 @@ class TransactionUseCaseTest {
         verify(accountPort).findByAccountNumberWithLock("1234567890");
         verify(accountPort).findByAccountNumberWithLock("0987654321");
         verify(feeCalculator).calculate(any());
-        verify(transferLimitChecker).checkLimit(any(), any());
+        verify(transferLimitChecker).checkLimit(any(), any(), any());
         verify(transactionPort, times(2)).save(any(Transaction.class));
     }
 
@@ -272,7 +280,9 @@ class TransactionUseCaseTest {
         when(accountPort.findByAccountNumberWithLock("1234567890")).thenReturn(Optional.of(fromAccount));
         when(accountPort.findByAccountNumberWithLock("0987654321")).thenReturn(Optional.of(toAccount));
         when(feeCalculator.calculate(any())).thenReturn(fee);
-        doNothing().when(transferLimitChecker).checkLimit(any(), any());
+        when(timePort.today()).thenReturn(fixedTime.toLocalDate());
+        when(timePort.now()).thenReturn(fixedTime);
+        doNothing().when(transferLimitChecker).checkLimit(any(), any(), any());
 
         // when & then
         assertThatThrownBy(() -> transactionUseCase.transfer("1234567890", "0987654321", amount))
@@ -283,7 +293,7 @@ class TransactionUseCaseTest {
         verify(accountPort).findByAccountNumberWithLock("1234567890");
         verify(accountPort).findByAccountNumberWithLock("0987654321");
         verify(feeCalculator).calculate(any());
-        verify(transferLimitChecker).checkLimit(any(), any());
+        verify(transferLimitChecker).checkLimit(any(), any(), any());
         verify(transactionPort, never()).save(any());
     }
 
@@ -302,8 +312,10 @@ class TransactionUseCaseTest {
         when(accountPort.findByAccountNumberWithLock("1234567890")).thenReturn(Optional.of(fromAccount));
         when(accountPort.findByAccountNumberWithLock("0987654321")).thenReturn(Optional.of(toAccount));
         when(feeCalculator.calculate(any())).thenReturn(new BigDecimal("6000"));
+        when(timePort.today()).thenReturn(fixedTime.toLocalDate());
+        when(timePort.now()).thenReturn(fixedTime);
         doThrow(new DomainException(ErrorType.DAILY_TRANSFER_LIMIT_EXCEEDED))
-                .when(transferLimitChecker).checkLimit(any(), any());
+                .when(transferLimitChecker).checkLimit(any(), any(), any());
 
         // when & then
         assertThatThrownBy(() -> transactionUseCase.transfer("1234567890", "0987654321", amount))
@@ -312,7 +324,7 @@ class TransactionUseCaseTest {
 
         verify(accountPort).findByAccountNumberWithLock("1234567890");
         verify(accountPort).findByAccountNumberWithLock("0987654321");
-        verify(transferLimitChecker).checkLimit(any(), any());
+        verify(transferLimitChecker).checkLimit(any(), any(), any());
         verify(transactionPort, never()).save(any());
     }
 
@@ -343,5 +355,85 @@ class TransactionUseCaseTest {
         verify(accountPort).findByAccountNumber(accountNumber);
         verify(transactionPort).findAllByAccountId(1L, 0, 20);
         verify(transactionPort).countByAccountId(1L);
+    }
+
+    @Test
+    @DisplayName("이체 성공 - 데드락 방지 (A→B 순서)")
+    void transfer_success_deadlock_prevention_A_to_B() {
+        // given - 계좌번호가 사전순으로 A < B
+        Account accountA = Account.create("1111111111", "사용자A", fixedTime)
+                .withId(1L)
+                .deposit(new BigDecimal("100000"), fixedTime);
+        Account accountB = Account.create("9999999999", "사용자B", fixedTime)
+                .withId(2L);
+
+        BigDecimal amount = new BigDecimal("50000");
+        BigDecimal fee = new BigDecimal("500");
+
+        // A가 먼저 조회되어야 함 (사전순)
+        when(accountPort.findByAccountNumberWithLock("1111111111")).thenReturn(Optional.of(accountA));
+        when(accountPort.findByAccountNumberWithLock("9999999999")).thenReturn(Optional.of(accountB));
+        when(feeCalculator.calculate(any())).thenReturn(fee);
+        when(timePort.today()).thenReturn(fixedTime.toLocalDate());
+        when(timePort.now()).thenReturn(fixedTime);
+        doNothing().when(transferLimitChecker).checkLimit(any(), any(), any());
+        when(accountPort.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(transactionPort.save(any(Transaction.class)))
+                .thenAnswer(invocation -> {
+                    Transaction tx = invocation.getArgument(0);
+                    return tx.withId(tx.getAccountId());
+                });
+
+        // when
+        TransferUseCase.TransferResult result = transactionUseCase.transfer("1111111111", "9999999999", amount);
+
+        // then
+        assertThat(result.fromTransaction().getAmount()).isEqualByComparingTo(amount);
+        assertThat(result.toTransaction().getAmount()).isEqualByComparingTo(amount);
+
+        // 락 획득 순서 검증: A → B 순서로 조회
+        var inOrder = inOrder(accountPort);
+        inOrder.verify(accountPort).findByAccountNumberWithLock("1111111111");
+        inOrder.verify(accountPort).findByAccountNumberWithLock("9999999999");
+    }
+
+    @Test
+    @DisplayName("이체 성공 - 데드락 방지 (B→A 순서도 A부터 락 획득)")
+    void transfer_success_deadlock_prevention_B_to_A() {
+        // given - B→A 이체이지만 락은 A부터 획득해야 함
+        Account accountA = Account.create("1111111111", "사용자A", fixedTime)
+                .withId(1L);
+        Account accountB = Account.create("9999999999", "사용자B", fixedTime)
+                .withId(2L)
+                .deposit(new BigDecimal("100000"), fixedTime);
+
+        BigDecimal amount = new BigDecimal("50000");
+        BigDecimal fee = new BigDecimal("500");
+
+        // A가 먼저 조회되어야 함 (사전순)
+        when(accountPort.findByAccountNumberWithLock("1111111111")).thenReturn(Optional.of(accountA));
+        when(accountPort.findByAccountNumberWithLock("9999999999")).thenReturn(Optional.of(accountB));
+        when(feeCalculator.calculate(any())).thenReturn(fee);
+        when(timePort.today()).thenReturn(fixedTime.toLocalDate());
+        when(timePort.now()).thenReturn(fixedTime);
+        doNothing().when(transferLimitChecker).checkLimit(any(), any(), any());
+        when(accountPort.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(transactionPort.save(any(Transaction.class)))
+                .thenAnswer(invocation -> {
+                    Transaction tx = invocation.getArgument(0);
+                    return tx.withId(tx.getAccountId());
+                });
+
+        // when - B→A 이체
+        TransferUseCase.TransferResult result = transactionUseCase.transfer("9999999999", "1111111111", amount);
+
+        // then
+        assertThat(result.fromTransaction().getAmount()).isEqualByComparingTo(amount);
+        assertThat(result.toTransaction().getAmount()).isEqualByComparingTo(amount);
+
+        // 락 획득 순서 검증: 이체 방향과 무관하게 A → B 순서로 조회
+        var inOrder = inOrder(accountPort);
+        inOrder.verify(accountPort).findByAccountNumberWithLock("1111111111");
+        inOrder.verify(accountPort).findByAccountNumberWithLock("9999999999");
     }
 }

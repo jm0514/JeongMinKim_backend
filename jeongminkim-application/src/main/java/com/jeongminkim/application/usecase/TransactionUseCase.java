@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -45,8 +47,9 @@ public class TransactionUseCase implements
     public Transaction deposit(String accountNumber, BigDecimal amount) {
         validateAmount(amount);
 
-        // 계좌 조회
-        Account account = findAccountByNumber(accountNumber);
+        // 계좌 조회 (락) - Lost Update 방지
+        Account account = accountPort.findByAccountNumberWithLock(accountNumber)
+                .orElseThrow(() -> new DomainException(ErrorType.ACCOUNT_NOT_FOUND, accountNumber));
 
         // 입금
         Account updatedAccount = account.deposit(amount, timePort.now());
@@ -70,25 +73,29 @@ public class TransactionUseCase implements
     public Transaction withdraw(String accountNumber, BigDecimal amount) {
         validateAmount(amount);
 
+        // 트랜잭션 시작 시점의 시간 고정 (자정 경계 문제 방지)
+        LocalDate transactionDate = timePort.today();
+        LocalDateTime transactionTime = timePort.now();
+
         // 계좌 조회 (락)
         Account account = accountPort.findByAccountNumberWithLock(accountNumber)
                 .orElseThrow(() -> new DomainException(ErrorType.ACCOUNT_NOT_FOUND, accountNumber));
 
-        // 한도 체크
-        withdrawalLimitChecker.checkLimit(account.getId(), amount);
+        // 한도 체크 (고정된 날짜 사용)
+        withdrawalLimitChecker.checkLimit(account.getId(), amount, transactionDate);
 
-        // 출금
-        Account updatedAccount = account.withdraw(amount, timePort.now());
+        // 출금 (고정된 시간 사용)
+        Account updatedAccount = account.withdraw(amount, transactionTime);
 
         // 계좌 업데이트
         accountPort.save(updatedAccount);
 
-        // 거래 내역 생성
+        // 거래 내역 생성 (고정된 시간 사용)
         Transaction transaction = Transaction.createWithdrawal(
                 updatedAccount.getId(),
                 amount,
                 updatedAccount.getBalance(),
-                timePort.now()
+                transactionTime
         );
 
         return transactionPort.save(transaction);
@@ -99,25 +106,37 @@ public class TransactionUseCase implements
     public TransferResult transfer(String fromAccountNumber, String toAccountNumber, BigDecimal amount) {
         validateAmount(amount);
 
+        // 트랜잭션 시작 시점의 시간 고정 (자정 경계 문제 방지)
+        LocalDate transactionDate = timePort.today();
+        LocalDateTime transactionTime = timePort.now();
+
         // 동일 계좌 검증
         if (fromAccountNumber.equals(toAccountNumber)) {
             throw new DomainException(ErrorType.INVALID_TRANSFER, "동일한 계좌로 이체할 수 없습니다");
         }
 
-        // 출금 계좌 조회 (락)
-        Account fromAccount = accountPort.findByAccountNumberWithLock(fromAccountNumber)
-                .orElseThrow(() -> new DomainException(ErrorType.ACCOUNT_NOT_FOUND, fromAccountNumber));
+        // 데드락 방지: 계좌번호 순서로 정렬하여 항상 같은 순서로 락 획득
+        String firstAccountNumber = fromAccountNumber.compareTo(toAccountNumber) < 0
+                ? fromAccountNumber : toAccountNumber;
+        String secondAccountNumber = fromAccountNumber.equals(firstAccountNumber)
+                ? toAccountNumber : fromAccountNumber;
 
-        // 입금 계좌 조회 (락)
-        Account toAccount = accountPort.findByAccountNumberWithLock(toAccountNumber)
-                .orElseThrow(() -> new DomainException(ErrorType.ACCOUNT_NOT_FOUND, toAccountNumber));
+        // 정렬된 순서로 락 획득
+        Account firstAccount = accountPort.findByAccountNumberWithLock(firstAccountNumber)
+                .orElseThrow(() -> new DomainException(ErrorType.ACCOUNT_NOT_FOUND, firstAccountNumber));
+        Account secondAccount = accountPort.findByAccountNumberWithLock(secondAccountNumber)
+                .orElseThrow(() -> new DomainException(ErrorType.ACCOUNT_NOT_FOUND, secondAccountNumber));
+
+        // 실제 from/to 계좌 매핑
+        Account fromAccount = firstAccountNumber.equals(fromAccountNumber) ? firstAccount : secondAccount;
+        Account toAccount = firstAccountNumber.equals(toAccountNumber) ? firstAccount : secondAccount;
 
         // 수수료 계산
         BigDecimal fee = feeCalculator.calculate(amount);
         BigDecimal totalAmount = amount.add(fee);
 
-        // 한도 체크
-        transferLimitChecker.checkLimit(fromAccount.getId(), amount);
+        // 한도 체크 (고정된 날짜 사용)
+        transferLimitChecker.checkLimit(fromAccount.getId(), amount, transactionDate);
 
         // 잔액 확인 (금액 + 수수료)
         if (!fromAccount.hasEnoughBalance(totalAmount)) {
@@ -128,33 +147,33 @@ public class TransactionUseCase implements
             );
         }
 
-        // 출금 (금액 + 수수료)
-        Account updatedFromAccount = fromAccount.withdraw(totalAmount, timePort.now());
+        // 출금 (고정된 시간 사용)
+        Account updatedFromAccount = fromAccount.withdraw(totalAmount, transactionTime);
 
-        // 입금 (금액만)
-        Account updatedToAccount = toAccount.deposit(amount, timePort.now());
+        // 입금 (고정된 시간 사용)
+        Account updatedToAccount = toAccount.deposit(amount, transactionTime);
 
         // 계좌 업데이트
         accountPort.save(updatedFromAccount);
         accountPort.save(updatedToAccount);
 
-        // 출금 거래 내역
+        // 출금 거래 내역 (고정된 시간 사용)
         Transaction fromTransaction = Transaction.createTransferOut(
                 updatedFromAccount.getId(),
                 amount,
                 fee,
                 updatedFromAccount.getBalance(),
                 toAccountNumber,
-                timePort.now()
+                transactionTime
         );
 
-        // 입금 거래 내역
+        // 입금 거래 내역 (고정된 시간 사용)
         Transaction toTransaction = Transaction.createTransferIn(
                 updatedToAccount.getId(),
                 amount,
                 updatedToAccount.getBalance(),
                 fromAccountNumber,
-                timePort.now()
+                transactionTime
         );
 
         Transaction savedFromTx = transactionPort.save(fromTransaction);
