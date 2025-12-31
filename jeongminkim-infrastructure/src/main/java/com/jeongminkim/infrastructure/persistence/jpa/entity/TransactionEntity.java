@@ -16,7 +16,10 @@ import java.time.LocalDateTime;
  * Infrastructure 계층에만 존재
  */
 @Entity
-@Table(name = "transactions")
+@Table(name = "transactions", indexes = {
+        @Index(name = "idx_account_id_created_at", columnList = "account_id, created_at"),
+        @Index(name = "idx_account_type_date", columnList = "account_id, transaction_type, created_at")
+})
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
